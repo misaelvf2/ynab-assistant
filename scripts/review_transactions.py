@@ -11,23 +11,66 @@ from ynab_client import (
 )
 
 
+def generate_executive_summary(total_txns: int, uncategorized: list,
+                                missing_memo: list, unapproved: list,
+                                multi_variations: dict, days: int) -> str:
+    """Generate plain-English executive summary."""
+    lines = []
+
+    total_issues = len(uncategorized) + len(missing_memo) + len(unapproved)
+
+    if total_issues == 0:
+        lines.append(
+            f"Reviewed {total_txns} transactions from the last {days} days. "
+            f"Everything looks clean—no uncategorized transactions, no missing memos on large purchases, "
+            f"and nothing unapproved. Well done."
+        )
+    else:
+        lines.append(
+            f"Reviewed {total_txns} transactions from the last {days} days and found {total_issues} issues."
+        )
+
+        if uncategorized:
+            total_uncat = sum(abs(t["amount"]) for t in uncategorized)
+            lines.append(
+                f"{len(uncategorized)} transactions totaling {format_currency(int(total_uncat))} are uncategorized. "
+                f"Fix these so your reports are accurate."
+            )
+
+        if missing_memo:
+            lines.append(
+                f"{len(missing_memo)} large transactions are missing memos. "
+                f"Add notes so you remember what these were for."
+            )
+
+        if unapproved:
+            lines.append(
+                f"{len(unapproved)} transactions haven't been approved. Review and approve them."
+            )
+
+    if multi_variations:
+        lines.append(
+            f"Also found {len(multi_variations)} payees with inconsistent naming from imports—"
+            f"consider cleaning up the payee rules."
+        )
+
+    return " ".join(lines)
+
+
 def review_transactions(days: int = 30, memo_threshold: float = 100) -> str:
     client = YNABClient()
     today = date.today()
 
-    # Get transactions from the last N days
     since = today - timedelta(days=days)
     since_str = since.strftime("%Y-%m-%d")
 
     transactions = client.get_transactions(since_date=since_str)
 
-    # Filter out deleted and transfer transactions
     txns = [
         t for t in transactions
         if not t["deleted"] and t["transfer_account_id"] is None
     ]
 
-    # Track issues
     uncategorized = []
     missing_memo = []
     unapproved = []
@@ -39,38 +82,40 @@ def review_transactions(days: int = 30, memo_threshold: float = 100) -> str:
         amount = txn["amount"]
         abs_amount = abs(amount)
 
-        # Check for uncategorized
         if txn["category_name"] == "Uncategorized" or txn["category_id"] is None:
-            if amount < 0:  # Outflow
+            if amount < 0:
                 uncategorized.append(txn)
 
-        # Check for missing memo on large transactions
         if abs_amount >= memo_threshold_mu and not txn["memo"]:
             missing_memo.append(txn)
 
-        # Check for unapproved
         if not txn["approved"]:
             unapproved.append(txn)
 
-        # Track payee name variations
         if txn["import_payee_name"] and txn["payee_name"]:
             import_name = txn["import_payee_name"].lower().strip()
             clean_name = txn["payee_name"]
             payee_variations[clean_name].append(import_name)
 
-    # Find payees with multiple import variations
     multi_variations = {
         k: list(set(v)) for k, v in payee_variations.items()
         if len(set(v)) > 2
     }
 
-    # Build markdown report
+    exec_summary = generate_executive_summary(
+        len(txns), uncategorized, missing_memo, unapproved, multi_variations, days
+    )
+
     lines = [
         f"# Transaction Review - {today}",
         f"",
         f"**Period:** Last {days} days (since {since_str})",
         f"**Memo threshold:** ${memo_threshold:.2f}",
         f"**Transactions reviewed:** {len(txns)}",
+        f"",
+        f"## Executive Summary",
+        f"",
+        f"{exec_summary}",
         f"",
     ]
 
@@ -136,11 +181,10 @@ def review_transactions(days: int = 30, memo_threshold: float = 100) -> str:
         lines.extend([
             f"## All Clear",
             f"",
-            f"No issues found. All transactions look clean.",
+            f"No issues found.",
             f"",
         ])
 
-    # Summary
     total_issues = len(uncategorized) + len(missing_memo) + len(unapproved)
     lines.extend([
         f"---",
@@ -150,12 +194,10 @@ def review_transactions(days: int = 30, memo_threshold: float = 100) -> str:
 
     report_content = "\n".join(lines)
 
-    # Save report
-    filepath = save_report("transaction-review", report_content)
+    md_path, html_path = save_report("transaction-review", report_content)
 
-    # Print to console
     print(report_content)
-    print(f"\n---\nReport saved to: {filepath}")
+    print(f"\n---\nReports saved to:\n  {md_path}\n  {html_path}")
 
     return report_content
 

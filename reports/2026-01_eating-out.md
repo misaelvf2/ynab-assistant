@@ -1,8 +1,12 @@
 # Eating Out Tracker - 2026-01
 
-**Hard Cap:** $600.00/month
+**Hard Cap:** $600.00/month | **Status:** ON TRACK
 
-## Summary
+## Executive Summary
+
+Only $137.94 spent with 14 days left—you're being unusually disciplined. At $8.11/day, you'll finish around $252, well under the $600 cap. Don't let this go to your head. Note: You only budgeted $500 in YNAB but your hard cap is $600. Either fund it properly or admit the cap is aspirational.
+
+## Metrics
 
 | Metric | Value |
 |--------|-------|
@@ -20,18 +24,3 @@
 | Daily average | $8.11/day |
 | Projected month-end | $251.54 |
 | **Daily runway** | **$33.00/day** |
-
-## Status: ON TRACK
-
-## Transactions
-
-| Date | Payee | Amount |
-|------|-------|--------|
-| 2026-01-11 | ISAAC’S | $45.98 |
-| 2026-01-11 | Taco Bell | $27.70 |
-| 2026-01-12 | Charley's Philly Steaks | $25.49 |
-| 2026-01-13 | Eurest | $11.52 |
-| 2026-01-14 | Chick-fil-A | $11.55 |
-| 2026-01-16 | Jersey Mike's | $15.70 |
-
-**Total:** $137.94

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Net Worth Calculator - Calculate total assets, liabilities, and net worth
-Optionally compare to previous snapshot for growth tracking
 """
 import argparse
 import json
@@ -17,7 +16,6 @@ SNAPSHOT_FILE = CACHE_DIR / "net_worth_snapshots.json"
 
 
 def load_snapshots() -> dict:
-    """Load historical snapshots"""
     if SNAPSHOT_FILE.exists():
         with open(SNAPSHOT_FILE) as f:
             return json.load(f)
@@ -25,7 +23,6 @@ def load_snapshots() -> dict:
 
 
 def save_snapshot(snapshot_date: str, data: dict):
-    """Save a snapshot"""
     snapshots = load_snapshots()
     snapshots[snapshot_date] = data
     SNAPSHOT_FILE.parent.mkdir(exist_ok=True)
@@ -33,12 +30,70 @@ def save_snapshot(snapshot_date: str, data: dict):
         json.dump(snapshots, f, indent=2)
 
 
+def generate_executive_summary(net_worth: int, total_assets: int, total_liabilities: int,
+                                total_on_budget: int, total_tracking: int,
+                                total_credit: int, total_loans: int,
+                                compare_data: dict = None) -> str:
+    """Generate plain-English executive summary."""
+    lines = []
+
+    nw = milliunits_to_dollars(net_worth)
+    assets = milliunits_to_dollars(total_assets)
+    liabilities = milliunits_to_dollars(total_liabilities)
+    liquid = milliunits_to_dollars(total_on_budget)
+    investments = milliunits_to_dollars(total_tracking)
+    cc_debt = milliunits_to_dollars(total_credit)
+    loan_debt = milliunits_to_dollars(total_loans)
+
+    # Overall position
+    lines.append(f"Net worth stands at ${nw:,.0f}.")
+
+    # Asset breakdown
+    if investments > liquid:
+        inv_pct = (investments / assets) * 100 if assets > 0 else 0
+        lines.append(
+            f"The bulk of your assets (${investments:,.0f}, {inv_pct:.0f}%) sit in investments and property, "
+            f"with ${liquid:,.0f} in liquid accounts."
+        )
+    else:
+        lines.append(f"You have ${liquid:,.0f} liquid and ${investments:,.0f} in investments/property.")
+
+    # Debt assessment
+    if liabilities > 0:
+        debt_to_asset = (liabilities / assets) * 100 if assets > 0 else 0
+        if cc_debt > 0 and loan_debt > 0:
+            lines.append(
+                f"Total debt is ${liabilities:,.0f} ({debt_to_asset:.0f}% of assets): "
+                f"${cc_debt:,.0f} on credit cards and ${loan_debt:,.0f} in loans."
+            )
+        elif cc_debt > 0:
+            lines.append(f"You're carrying ${cc_debt:,.0f} in credit card debt.")
+        elif loan_debt > 0:
+            lines.append(f"Loan debt totals ${loan_debt:,.0f}.")
+
+        if cc_debt > 5000:
+            lines.append("That credit card balance needs attention—interest is eating your returns.")
+    else:
+        lines.append("No debt. Impressive, if true.")
+
+    # Comparison if available
+    if compare_data:
+        prev_nw = compare_data["net_worth"]
+        change = net_worth - prev_nw
+        pct = (change / prev_nw * 100) if prev_nw != 0 else 0
+        direction = "up" if change >= 0 else "down"
+        lines.append(
+            f"Compared to the snapshot, you're {direction} ${abs(milliunits_to_dollars(change)):,.0f} ({pct:+.1f}%)."
+        )
+
+    return " ".join(lines)
+
+
 def calculate_net_worth(save: bool = False, compare: str = None) -> str:
     client = YNABClient()
     accounts = client.get_accounts()
     today = date.today()
 
-    # Categorize accounts
     assets = {"on_budget": [], "tracking": []}
     liabilities = {"credit_cards": [], "loans": []}
 
@@ -63,7 +118,6 @@ def calculate_net_worth(save: bool = False, compare: str = None) -> str:
             else:
                 liabilities["loans"].append(entry)
 
-    # Calculate totals
     total_on_budget = sum(a["balance"] for a in assets["on_budget"])
     total_tracking = sum(a["balance"] for a in assets["tracking"])
     total_assets = total_on_budget + total_tracking
@@ -74,17 +128,30 @@ def calculate_net_worth(save: bool = False, compare: str = None) -> str:
 
     net_worth = total_assets - total_liabilities
 
+    # Get comparison data if requested
+    compare_data = None
+    if compare:
+        snapshots = load_snapshots()
+        if compare in snapshots:
+            compare_data = snapshots[compare]
+
+    exec_summary = generate_executive_summary(
+        net_worth, total_assets, total_liabilities,
+        total_on_budget, total_tracking, total_credit, total_loans,
+        compare_data
+    )
+
     # Build markdown report
     lines = [
         f"# Net Worth Report - {today}",
         f"",
-    ]
-
-    # Assets section
-    lines.extend([
+        f"## Executive Summary",
+        f"",
+        f"{exec_summary}",
+        f"",
         f"## Assets",
         f"",
-    ])
+    ]
 
     if assets["on_budget"]:
         lines.extend([
@@ -114,12 +181,9 @@ def calculate_net_worth(save: bool = False, compare: str = None) -> str:
             f"",
         ])
 
-    lines.extend([
-        f"**Total Assets: {format_currency(total_assets)}**",
-        f"",
-    ])
+    lines.append(f"**Total Assets: {format_currency(total_assets)}**")
+    lines.append(f"")
 
-    # Liabilities section
     lines.extend([
         f"## Liabilities",
         f"",
@@ -162,35 +226,26 @@ def calculate_net_worth(save: bool = False, compare: str = None) -> str:
         f"",
     ])
 
-    # Compare to previous snapshot if requested
-    if compare:
-        snapshots = load_snapshots()
-        if compare in snapshots:
-            prev = snapshots[compare]
-            prev_nw = prev["net_worth"]
-            change = net_worth - prev_nw
-            pct_change = (change / prev_nw * 100) if prev_nw != 0 else 0
-            direction = "+" if change >= 0 else ""
+    if compare and compare_data:
+        prev_nw = compare_data["net_worth"]
+        change = net_worth - prev_nw
+        pct_change = (change / prev_nw * 100) if prev_nw != 0 else 0
+        direction = "+" if change >= 0 else ""
 
-            lines.extend([
-                f"## Comparison to {compare}",
-                f"",
-                f"| Metric | Value |",
-                f"|--------|-------|",
-                f"| Previous | {format_currency(prev_nw)} |",
-                f"| Current | {format_currency(net_worth)} |",
-                f"| Change | {direction}{format_currency(change)} ({direction}{pct_change:.1f}%) |",
-                f"",
-            ])
-        else:
-            lines.extend([
-                f"*No snapshot found for {compare}*",
-                f"",
-                f"Available snapshots: {list(snapshots.keys())}",
-                f"",
-            ])
+        lines.extend([
+            f"## Comparison to {compare}",
+            f"",
+            f"| Metric | Value |",
+            f"|--------|-------|",
+            f"| Previous | {format_currency(prev_nw)} |",
+            f"| Current | {format_currency(net_worth)} |",
+            f"| Change | {direction}{format_currency(change)} ({direction}{pct_change:.1f}%) |",
+            f"",
+        ])
+    elif compare:
+        lines.append(f"*No snapshot found for {compare}*")
+        lines.append(f"")
 
-    # Save snapshot if requested
     if save:
         today_str = str(today)
         snapshot_data = {
@@ -207,18 +262,15 @@ def calculate_net_worth(save: bool = False, compare: str = None) -> str:
 
     report_content = "\n".join(lines)
 
-    # Save report
-    filepath = save_report("net-worth", report_content)
+    md_path, html_path = save_report("net-worth", report_content)
 
-    # Print to console
     print(report_content)
-    print(f"\n---\nReport saved to: {filepath}")
+    print(f"\n---\nReports saved to:\n  {md_path}\n  {html_path}")
 
     return report_content
 
 
 def list_snapshots():
-    """List available snapshots"""
     snapshots = load_snapshots()
     if snapshots:
         print("\nAvailable snapshots:")
