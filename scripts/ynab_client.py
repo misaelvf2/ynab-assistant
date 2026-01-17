@@ -3,8 +3,9 @@ YNAB API Client - Base module for interacting with YNAB API
 """
 import os
 import json
+import hashlib
 import requests
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -14,8 +15,13 @@ ENV_FILE = PROJECT_ROOT / ".env"
 CONFIG_FILE = PROJECT_ROOT / "config.json"
 CACHE_DIR = PROJECT_ROOT / "cache"
 REPORTS_DIR = PROJECT_ROOT / "reports"
+API_CACHE_DIR = CACHE_DIR / "api"
 
 BASE_URL = "https://api.ynab.com/v1"
+
+# Cache TTL settings (in seconds)
+CACHE_TTL_DEFAULT = 300  # 5 minutes for most data
+CACHE_TTL_HISTORICAL = 86400  # 24 hours for historical/static data
 
 
 def load_token() -> str:
@@ -41,21 +47,80 @@ def load_config() -> dict:
 
 
 class YNABClient:
-    def __init__(self):
+    def __init__(self, use_cache: bool = True):
         self.token = load_token()
         self.config = load_config()
         self.budget_id = self.config["ynab"]["budget_id"]
         self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.use_cache = use_cache
+        self.cache_stats = {"hits": 0, "misses": 0}
 
-        # Ensure cache directory exists
+        # Ensure cache directories exist
         CACHE_DIR.mkdir(exist_ok=True)
+        API_CACHE_DIR.mkdir(exist_ok=True)
 
-    def _get(self, endpoint: str, params: Optional[dict] = None) -> dict:
-        """Make GET request to YNAB API"""
+    def _get_cache_key(self, endpoint: str, params: Optional[dict] = None) -> str:
+        """Generate a cache key from endpoint and params"""
+        key_data = endpoint + (json.dumps(params, sort_keys=True) if params else "")
+        return hashlib.md5(key_data.encode()).hexdigest()
+
+    def _get_cached(self, cache_key: str, ttl: int) -> Optional[dict]:
+        """Get cached response if valid"""
+        if not self.use_cache:
+            return None
+
+        cache_file = API_CACHE_DIR / f"{cache_key}.json"
+        if not cache_file.exists():
+            return None
+
+        # Check if cache is expired
+        mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
+        if datetime.now() - mtime > timedelta(seconds=ttl):
+            return None
+
+        try:
+            with open(cache_file) as f:
+                self.cache_stats["hits"] += 1
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
+
+    def _set_cached(self, cache_key: str, data: dict):
+        """Save response to cache"""
+        if not self.use_cache:
+            return
+
+        cache_file = API_CACHE_DIR / f"{cache_key}.json"
+        with open(cache_file, "w") as f:
+            json.dump(data, f)
+
+    def _get(self, endpoint: str, params: Optional[dict] = None,
+             ttl: int = CACHE_TTL_DEFAULT) -> dict:
+        """Make GET request to YNAB API with caching"""
+        cache_key = self._get_cache_key(endpoint, params)
+
+        # Try cache first
+        cached = self._get_cached(cache_key, ttl)
+        if cached is not None:
+            return cached
+
+        # Make API request
+        self.cache_stats["misses"] += 1
         url = f"{BASE_URL}{endpoint}"
         response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
-        return response.json()["data"]
+        data = response.json()["data"]
+
+        # Cache the response
+        self._set_cached(cache_key, data)
+
+        return data
+
+    def clear_cache(self):
+        """Clear all cached API responses"""
+        for cache_file in API_CACHE_DIR.glob("*.json"):
+            cache_file.unlink()
+        print(f"Cache cleared")
 
     def get_accounts(self) -> list:
         """Get all accounts"""
@@ -84,6 +149,22 @@ class YNABClient:
         """Get specific category data for a month"""
         data = self._get(f"/budgets/{self.budget_id}/months/{month}/categories/{category_id}")
         return data["category"]
+
+    def get_account_transactions(self, account_id: str) -> list:
+        """Get all transactions for a specific account (cached longer for historical data)"""
+        data = self._get(
+            f"/budgets/{self.budget_id}/accounts/{account_id}/transactions",
+            ttl=CACHE_TTL_HISTORICAL
+        )
+        return data["transactions"]
+
+    def get_all_transactions(self) -> list:
+        """Get all transactions (cached longer for historical data)"""
+        data = self._get(
+            f"/budgets/{self.budget_id}/transactions",
+            ttl=CACHE_TTL_HISTORICAL
+        )
+        return data["transactions"]
 
 
 def milliunits_to_dollars(milliunits: int) -> float:
