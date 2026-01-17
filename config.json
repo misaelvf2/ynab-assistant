@@ -1,8 +1,13 @@
 {
+  "ynab": {
+    "budget_id": "eab11c91-fa84-4737-a95f-2de1b4766093",
+    "budget_name": "Misael's Budget"
+  },
   "spending_caps": {
     "eating_out": {
       "monthly_limit": 600,
-      "category_name": "Eating Out"
+      "category_name": "Eating Out",
+      "category_id": "38cafc4b-9de8-4b2f-8ec1-44e3e8be7006"
     }
   },
   "review_settings": {
