@@ -1,0 +1,12 @@
+{
+  "spending_caps": {
+    "eating_out": {
+      "monthly_limit": 600,
+      "category_name": "Eating Out"
+    }
+  },
+  "review_settings": {
+    "flag_large_transactions_above": 500,
+    "require_memo_for_transactions_above": 100
+  }
+}

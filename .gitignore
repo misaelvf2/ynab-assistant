@@ -1,0 +1,9 @@
+# Sensitive files - NEVER commit
+.env
+*.secret
+
+# OS files
+.DS_Store
+
+# Cached data
+cache/
