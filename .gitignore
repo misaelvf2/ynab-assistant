@@ -7,3 +7,7 @@
 
 # Cached data
 cache/
+
+# Python
+__pycache__/
+*.pyc
