@@ -13,6 +13,7 @@ PROJECT_ROOT = Path(__file__).parent.parent
 ENV_FILE = PROJECT_ROOT / ".env"
 CONFIG_FILE = PROJECT_ROOT / "config.json"
 CACHE_DIR = PROJECT_ROOT / "cache"
+REPORTS_DIR = PROJECT_ROOT / "reports"
 
 BASE_URL = "https://api.ynab.com/v1"
 
@@ -117,6 +118,32 @@ def get_month_start_date(year: int = None, month: int = None) -> str:
         year = today.year
         month = today.month
     return f"{year:04d}-{month:02d}-01"
+
+
+def save_report(report_type: str, content: str, month_str: str = None) -> Path:
+    """Save a report to the reports directory.
+
+    Args:
+        report_type: Type of report (e.g., 'eating-out', 'spending', 'net-worth')
+        content: Markdown content of the report
+        month_str: Optional month string (YYYY-MM) for the report filename
+
+    Returns:
+        Path to the saved report
+    """
+    REPORTS_DIR.mkdir(exist_ok=True)
+
+    today = date.today()
+    if month_str:
+        filename = f"{month_str}_{report_type}.md"
+    else:
+        filename = f"{today.isoformat()}_{report_type}.md"
+
+    filepath = REPORTS_DIR / filename
+    with open(filepath, "w") as f:
+        f.write(content)
+
+    return filepath
 
 
 if __name__ == "__main__":

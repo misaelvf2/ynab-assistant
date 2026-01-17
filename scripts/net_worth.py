@@ -5,9 +5,12 @@ Optionally compare to previous snapshot for growth tracking
 """
 import argparse
 import json
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
-from ynab_client import YNABClient, format_currency, milliunits_to_dollars, CACHE_DIR
+from ynab_client import (
+    YNABClient, format_currency, milliunits_to_dollars,
+    CACHE_DIR, save_report
+)
 
 
 SNAPSHOT_FILE = CACHE_DIR / "net_worth_snapshots.json"
@@ -30,9 +33,10 @@ def save_snapshot(snapshot_date: str, data: dict):
         json.dump(snapshots, f, indent=2)
 
 
-def calculate_net_worth(save: bool = False, compare: str = None):
+def calculate_net_worth(save: bool = False, compare: str = None) -> str:
     client = YNABClient()
     accounts = client.get_accounts()
+    today = date.today()
 
     # Categorize accounts
     assets = {"on_budget": [], "tracking": []}
@@ -42,24 +46,18 @@ def calculate_net_worth(save: bool = False, compare: str = None):
         if acc["closed"] or acc["deleted"]:
             continue
 
-        balance = acc["balance"]  # milliunits
+        balance = acc["balance"]
         name = acc["name"]
         acc_type = acc["type"]
 
-        entry = {
-            "name": name,
-            "balance": balance,
-            "type": acc_type
-        }
+        entry = {"name": name, "balance": balance, "type": acc_type}
 
         if balance >= 0:
-            # Asset
             if acc["on_budget"]:
                 assets["on_budget"].append(entry)
             else:
                 assets["tracking"].append(entry)
         else:
-            # Liability (negative balance)
             if acc_type == "creditCard":
                 liabilities["credit_cards"].append(entry)
             else:
@@ -76,48 +74,93 @@ def calculate_net_worth(save: bool = False, compare: str = None):
 
     net_worth = total_assets - total_liabilities
 
-    # Print report
-    print(f"\n{'='*60}")
-    print(f"  NET WORTH REPORT - {date.today()}")
-    print(f"{'='*60}")
+    # Build markdown report
+    lines = [
+        f"# Net Worth Report - {today}",
+        f"",
+    ]
 
-    print(f"\n  ASSETS")
-    print(f"  {'-'*55}")
+    # Assets section
+    lines.extend([
+        f"## Assets",
+        f"",
+    ])
 
     if assets["on_budget"]:
-        print(f"\n  On-Budget Accounts:")
+        lines.extend([
+            f"### On-Budget Accounts",
+            f"",
+            f"| Account | Balance |",
+            f"|---------|---------|",
+        ])
         for acc in sorted(assets["on_budget"], key=lambda x: -x["balance"]):
-            print(f"    {acc['name']:<30} {format_currency(acc['balance']):>12}")
-        print(f"    {'Subtotal':<30} {format_currency(total_on_budget):>12}")
+            lines.append(f"| {acc['name']} | {format_currency(acc['balance'])} |")
+        lines.extend([
+            f"| **Subtotal** | **{format_currency(total_on_budget)}** |",
+            f"",
+        ])
 
     if assets["tracking"]:
-        print(f"\n  Tracking Accounts (Investments/Property):")
+        lines.extend([
+            f"### Tracking Accounts (Investments/Property)",
+            f"",
+            f"| Account | Balance |",
+            f"|---------|---------|",
+        ])
         for acc in sorted(assets["tracking"], key=lambda x: -x["balance"]):
-            print(f"    {acc['name']:<30} {format_currency(acc['balance']):>12}")
-        print(f"    {'Subtotal':<30} {format_currency(total_tracking):>12}")
+            lines.append(f"| {acc['name']} | {format_currency(acc['balance'])} |")
+        lines.extend([
+            f"| **Subtotal** | **{format_currency(total_tracking)}** |",
+            f"",
+        ])
 
-    print(f"\n  {'TOTAL ASSETS':<32} {format_currency(total_assets):>12}")
+    lines.extend([
+        f"**Total Assets: {format_currency(total_assets)}**",
+        f"",
+    ])
 
-    print(f"\n  LIABILITIES")
-    print(f"  {'-'*55}")
+    # Liabilities section
+    lines.extend([
+        f"## Liabilities",
+        f"",
+    ])
 
     if liabilities["credit_cards"]:
-        print(f"\n  Credit Cards:")
+        lines.extend([
+            f"### Credit Cards",
+            f"",
+            f"| Account | Balance |",
+            f"|---------|---------|",
+        ])
         for acc in sorted(liabilities["credit_cards"], key=lambda x: x["balance"]):
-            print(f"    {acc['name']:<30} {format_currency(abs(acc['balance'])):>12}")
-        print(f"    {'Subtotal':<30} {format_currency(total_credit):>12}")
+            lines.append(f"| {acc['name']} | {format_currency(abs(acc['balance']))} |")
+        lines.extend([
+            f"| **Subtotal** | **{format_currency(total_credit)}** |",
+            f"",
+        ])
 
     if liabilities["loans"]:
-        print(f"\n  Loans:")
+        lines.extend([
+            f"### Loans",
+            f"",
+            f"| Account | Balance |",
+            f"|---------|---------|",
+        ])
         for acc in sorted(liabilities["loans"], key=lambda x: x["balance"]):
-            print(f"    {acc['name']:<30} {format_currency(abs(acc['balance'])):>12}")
-        print(f"    {'Subtotal':<30} {format_currency(total_loans):>12}")
+            lines.append(f"| {acc['name']} | {format_currency(abs(acc['balance']))} |")
+        lines.extend([
+            f"| **Subtotal** | **{format_currency(total_loans)}** |",
+            f"",
+        ])
 
-    print(f"\n  {'TOTAL LIABILITIES':<32} {format_currency(total_liabilities):>12}")
-
-    print(f"\n{'='*60}")
-    print(f"  {'NET WORTH':<32} {format_currency(net_worth):>12}")
-    print(f"{'='*60}")
+    lines.extend([
+        f"**Total Liabilities: {format_currency(total_liabilities)}**",
+        f"",
+        f"---",
+        f"",
+        f"# Net Worth: {format_currency(net_worth)}",
+        f"",
+    ])
 
     # Compare to previous snapshot if requested
     if compare:
@@ -129,17 +172,27 @@ def calculate_net_worth(save: bool = False, compare: str = None):
             pct_change = (change / prev_nw * 100) if prev_nw != 0 else 0
             direction = "+" if change >= 0 else ""
 
-            print(f"\n  Comparison to {compare}:")
-            print(f"    Previous:  {format_currency(prev_nw)}")
-            print(f"    Current:   {format_currency(net_worth)}")
-            print(f"    Change:    {direction}{format_currency(change)} ({direction}{pct_change:.1f}%)")
+            lines.extend([
+                f"## Comparison to {compare}",
+                f"",
+                f"| Metric | Value |",
+                f"|--------|-------|",
+                f"| Previous | {format_currency(prev_nw)} |",
+                f"| Current | {format_currency(net_worth)} |",
+                f"| Change | {direction}{format_currency(change)} ({direction}{pct_change:.1f}%) |",
+                f"",
+            ])
         else:
-            print(f"\n  No snapshot found for {compare}")
-            print(f"  Available snapshots: {list(snapshots.keys())}")
+            lines.extend([
+                f"*No snapshot found for {compare}*",
+                f"",
+                f"Available snapshots: {list(snapshots.keys())}",
+                f"",
+            ])
 
     # Save snapshot if requested
     if save:
-        today_str = str(date.today())
+        today_str = str(today)
         snapshot_data = {
             "net_worth": net_worth,
             "total_assets": total_assets,
@@ -150,15 +203,29 @@ def calculate_net_worth(save: bool = False, compare: str = None):
             "loan_debt": total_loans
         }
         save_snapshot(today_str, snapshot_data)
-        print(f"\n  Snapshot saved for {today_str}")
+        lines.append(f"*Snapshot saved for {today_str}*")
 
-    print()
+    report_content = "\n".join(lines)
 
-    return {
-        "net_worth": net_worth,
-        "total_assets": total_assets,
-        "total_liabilities": total_liabilities
-    }
+    # Save report
+    filepath = save_report("net-worth", report_content)
+
+    # Print to console
+    print(report_content)
+    print(f"\n---\nReport saved to: {filepath}")
+
+    return report_content
+
+
+def list_snapshots():
+    """List available snapshots"""
+    snapshots = load_snapshots()
+    if snapshots:
+        print("\nAvailable snapshots:")
+        for date_str, data in sorted(snapshots.items()):
+            print(f"  {date_str}: {format_currency(data['net_worth'])}")
+    else:
+        print("\nNo snapshots saved yet. Use --save to create one.")
 
 
 def main():
@@ -172,13 +239,7 @@ def main():
     args = parser.parse_args()
 
     if args.list_snapshots:
-        snapshots = load_snapshots()
-        if snapshots:
-            print("\nAvailable snapshots:")
-            for date_str, data in sorted(snapshots.items()):
-                print(f"  {date_str}: {format_currency(data['net_worth'])}")
-        else:
-            print("\nNo snapshots saved yet. Use --save to create one.")
+        list_snapshots()
         return
 
     calculate_net_worth(save=args.save, compare=args.compare)

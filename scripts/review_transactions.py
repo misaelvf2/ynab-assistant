@@ -6,15 +6,17 @@ import argparse
 from collections import defaultdict
 from datetime import date, timedelta
 from ynab_client import (
-    YNABClient, format_currency, milliunits_to_dollars, get_month_start_date
+    YNABClient, format_currency, milliunits_to_dollars,
+    get_month_start_date, save_report
 )
 
 
-def review_transactions(days: int = 30, memo_threshold: float = 100):
+def review_transactions(days: int = 30, memo_threshold: float = 100) -> str:
     client = YNABClient()
+    today = date.today()
 
     # Get transactions from the last N days
-    since = date.today() - timedelta(days=days)
+    since = today - timedelta(days=days)
     since_str = since.strftime("%Y-%m-%d")
 
     transactions = client.get_transactions(since_date=since_str)
@@ -39,7 +41,6 @@ def review_transactions(days: int = 30, memo_threshold: float = 100):
 
         # Check for uncategorized
         if txn["category_name"] == "Uncategorized" or txn["category_id"] is None:
-            # Skip inflows that might legitimately be uncategorized
             if amount < 0:  # Outflow
                 uncategorized.append(txn)
 
@@ -57,65 +58,106 @@ def review_transactions(days: int = 30, memo_threshold: float = 100):
             clean_name = txn["payee_name"]
             payee_variations[clean_name].append(import_name)
 
-    # Find payees with multiple import variations (possible categorization issues)
+    # Find payees with multiple import variations
     multi_variations = {
         k: list(set(v)) for k, v in payee_variations.items()
         if len(set(v)) > 2
     }
 
-    # Print report
-    print(f"\n{'='*65}")
-    print(f"  TRANSACTION REVIEW - Last {days} days")
-    print(f"  Memo threshold: ${memo_threshold:.2f}")
-    print(f"{'='*65}")
+    # Build markdown report
+    lines = [
+        f"# Transaction Review - {today}",
+        f"",
+        f"**Period:** Last {days} days (since {since_str})",
+        f"**Memo threshold:** ${memo_threshold:.2f}",
+        f"**Transactions reviewed:** {len(txns)}",
+        f"",
+    ]
 
     issues_found = False
 
     if uncategorized:
         issues_found = True
-        print(f"\n  UNCATEGORIZED TRANSACTIONS ({len(uncategorized)})")
-        print(f"  {'-'*60}")
+        lines.extend([
+            f"## Uncategorized Transactions ({len(uncategorized)})",
+            f"",
+            f"| Date | Payee | Amount | Account |",
+            f"|------|-------|--------|---------|",
+        ])
         for txn in sorted(uncategorized, key=lambda x: x["date"]):
-            amt = format_currency(txn["amount"])
-            print(f"    {txn['date']}  {txn['payee_name']:<25}  {amt:>10}  [{txn['account_name']}]")
+            lines.append(
+                f"| {txn['date']} | {txn['payee_name']} | {format_currency(txn['amount'])} | {txn['account_name']} |"
+            )
+        lines.append("")
 
     if missing_memo:
         issues_found = True
-        print(f"\n  MISSING MEMO (transactions >= ${memo_threshold:.2f}) ({len(missing_memo)})")
-        print(f"  {'-'*60}")
+        lines.extend([
+            f"## Missing Memo (>= ${memo_threshold:.2f}) ({len(missing_memo)})",
+            f"",
+            f"| Date | Payee | Amount | Category |",
+            f"|------|-------|--------|----------|",
+        ])
         for txn in sorted(missing_memo, key=lambda x: x["date"]):
-            amt = format_currency(txn["amount"])
-            print(f"    {txn['date']}  {txn['payee_name']:<25}  {amt:>10}  [{txn['category_name']}]")
+            lines.append(
+                f"| {txn['date']} | {txn['payee_name']} | {format_currency(txn['amount'])} | {txn['category_name']} |"
+            )
+        lines.append("")
 
     if unapproved:
         issues_found = True
-        print(f"\n  UNAPPROVED TRANSACTIONS ({len(unapproved)})")
-        print(f"  {'-'*60}")
+        lines.extend([
+            f"## Unapproved Transactions ({len(unapproved)})",
+            f"",
+            f"| Date | Payee | Amount | Account |",
+            f"|------|-------|--------|---------|",
+        ])
         for txn in sorted(unapproved, key=lambda x: x["date"]):
-            amt = format_currency(txn["amount"])
-            print(f"    {txn['date']}  {txn['payee_name']:<25}  {amt:>10}  [{txn['account_name']}]")
+            lines.append(
+                f"| {txn['date']} | {txn['payee_name']} | {format_currency(txn['amount'])} | {txn['account_name']} |"
+            )
+        lines.append("")
 
     if multi_variations:
         issues_found = True
-        print(f"\n  PAYEES WITH MULTIPLE IMPORT NAMES ({len(multi_variations)})")
-        print(f"  (May indicate inconsistent categorization)")
-        print(f"  {'-'*60}")
+        lines.extend([
+            f"## Payees with Multiple Import Names ({len(multi_variations)})",
+            f"",
+            f"*May indicate inconsistent categorization*",
+            f"",
+        ])
         for payee, variations in sorted(multi_variations.items()):
-            print(f"    {payee}:")
-            for v in variations[:5]:  # Show first 5
-                print(f"      - {v}")
+            lines.append(f"**{payee}:**")
+            for v in variations[:5]:
+                lines.append(f"- {v}")
+            lines.append("")
 
     if not issues_found:
-        print(f"\n  No issues found. All transactions look clean.")
+        lines.extend([
+            f"## All Clear",
+            f"",
+            f"No issues found. All transactions look clean.",
+            f"",
+        ])
 
-    print(f"\n{'='*65}")
-
-    # Summary stats
-    total_txns = len(txns)
+    # Summary
     total_issues = len(uncategorized) + len(missing_memo) + len(unapproved)
+    lines.extend([
+        f"---",
+        f"",
+        f"**Summary:** {len(txns)} transactions reviewed, {total_issues} issues flagged",
+    ])
 
-    print(f"\n  Summary: {total_txns} transactions reviewed, {total_issues} issues flagged")
-    print()
+    report_content = "\n".join(lines)
+
+    # Save report
+    filepath = save_report("transaction-review", report_content)
+
+    # Print to console
+    print(report_content)
+    print(f"\n---\nReport saved to: {filepath}")
+
+    return report_content
 
 
 def main():

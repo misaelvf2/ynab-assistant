@@ -28,6 +28,20 @@ Run these via `python3 scripts/<script>.py`:
 - `.env` contains the YNAB API token (gitignored)
 - `config.json` contains budget IDs and spending caps
 - `cache/` stores net worth snapshots for trend tracking
+- `reports/` stores generated markdown reports (persisted)
+
+## Reports
+
+All scripts save markdown reports to `reports/`:
+
+| Report | Filename Pattern |
+|--------|-----------------|
+| Eating Out | `YYYY-MM_eating-out.md` |
+| Spending Summary | `YYYY-MM_spending.md` |
+| Net Worth | `YYYY-MM-DD_net-worth.md` |
+| Transaction Review | `YYYY-MM-DD_transaction-review.md` |
+
+Reports are overwritten when regenerated for the same period. Read previous reports with `Read` tool to compare or reference.
 
 ## Common Requests
 

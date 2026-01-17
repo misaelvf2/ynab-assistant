@@ -3,22 +3,21 @@
 Eating Out Tracker - Track spending against monthly hard cap
 """
 import argparse
-from datetime import date, datetime
+from datetime import date
 from calendar import monthrange
 from ynab_client import (
     YNABClient, format_currency, get_month_string,
-    get_month_start_date, milliunits_to_dollars
+    get_month_start_date, milliunits_to_dollars, save_report
 )
 
 
-def track_eating_out(year: int = None, month: int = None, show_transactions: bool = False):
+def track_eating_out(year: int = None, month: int = None, show_transactions: bool = False) -> str:
     client = YNABClient()
 
     # Get config values
     eating_out_config = client.config["spending_caps"]["eating_out"]
-    monthly_cap = eating_out_config["monthly_limit"]  # in dollars
+    monthly_cap = eating_out_config["monthly_limit"]
     category_id = eating_out_config["category_id"]
-    category_name = eating_out_config["category_name"]
 
     # Default to current month
     today = date.today()
@@ -28,13 +27,14 @@ def track_eating_out(year: int = None, month: int = None, show_transactions: boo
         month = today.month
 
     month_str = get_month_string(year, month)
+    month_label = f"{year}-{month:02d}"
     start_date = get_month_start_date(year, month)
 
     # Get category data for the month
     category = client.get_category_by_month(category_id, month_str)
 
     budgeted = milliunits_to_dollars(category["budgeted"])
-    spent = -milliunits_to_dollars(category["activity"])  # activity is negative
+    spent = -milliunits_to_dollars(category["activity"])
     balance = milliunits_to_dollars(category["balance"])
 
     # Calculate time metrics
@@ -58,66 +58,86 @@ def track_eating_out(year: int = None, month: int = None, show_transactions: boo
     # Status determination
     if spent > monthly_cap:
         status = "OVER BUDGET"
-        status_color = "red"
     elif projected_total > monthly_cap:
         status = "WARNING - On pace to exceed"
-        status_color = "yellow"
     elif projected_total > monthly_cap * 0.8:
         status = "CAUTION - Approaching limit"
-        status_color = "yellow"
     else:
         status = "ON TRACK"
-        status_color = "green"
 
-    # Print report
-    print(f"\n{'='*55}")
-    print(f"  EATING OUT TRACKER - {month_str[:7]}")
-    print(f"  Hard Cap: ${monthly_cap:.2f}/month")
-    print(f"{'='*55}\n")
+    # Build markdown report
+    lines = [
+        f"# Eating Out Tracker - {month_label}",
+        f"",
+        f"**Hard Cap:** ${monthly_cap:.2f}/month",
+        f"",
+        f"## Summary",
+        f"",
+        f"| Metric | Value |",
+        f"|--------|-------|",
+        f"| Spent this month | **${spent:.2f}** |",
+        f"| Budget remaining | ${remaining_budget:.2f} |",
+        f"| YNAB budgeted | ${budgeted:.2f} |",
+    ]
 
-    print(f"  Spent this month:     ${spent:>8.2f}")
-    print(f"  Budget remaining:     ${remaining_budget:>8.2f}")
-    print(f"  YNAB budgeted:        ${budgeted:>8.2f}", end="")
     if budgeted < monthly_cap:
-        print(f"  (underfunded by ${monthly_cap - budgeted:.2f}!)")
-    else:
-        print()
+        lines.append(f"| Underfunded by | ${monthly_cap - budgeted:.2f} |")
 
-    print()
-    print(f"  Days elapsed:         {days_elapsed:>8}")
-    print(f"  Days remaining:       {days_remaining:>8}")
-
-    print()
-    print(f"  Daily average:        ${daily_avg:>8.2f}/day")
-    print(f"  Projected month-end:  ${projected_total:>8.2f}")
+    lines.extend([
+        f"",
+        f"## Pace",
+        f"",
+        f"| Metric | Value |",
+        f"|--------|-------|",
+        f"| Days elapsed | {days_elapsed} |",
+        f"| Days remaining | {days_remaining} |",
+        f"| Daily average | ${daily_avg:.2f}/day |",
+        f"| Projected month-end | ${projected_total:.2f} |",
+    ])
 
     if is_current_month and days_remaining > 0:
-        print()
-        print(f"  >>> DAILY RUNWAY:     ${daily_runway:>8.2f}/day for {days_remaining} days <<<")
+        lines.append(f"| **Daily runway** | **${daily_runway:.2f}/day** |")
 
-    print()
-    print(f"  STATUS: {status}")
-    print(f"{'='*55}")
+    lines.extend([
+        f"",
+        f"## Status: {status}",
+        f"",
+    ])
 
-    # Show transactions if requested
+    # Add transactions if requested
     if show_transactions:
-        print(f"\n  Transactions:")
-        print(f"  {'-'*50}")
-
         transactions = client.get_transactions(since_date=start_date)
         eating_out_txns = [
             t for t in transactions
             if t["category_id"] == category_id and not t["deleted"]
         ]
 
+        lines.extend([
+            f"## Transactions",
+            f"",
+            f"| Date | Payee | Amount |",
+            f"|------|-------|--------|",
+        ])
+
         for txn in sorted(eating_out_txns, key=lambda x: x["date"]):
             amount = -milliunits_to_dollars(txn["amount"])
-            print(f"  {txn['date']}  {txn['payee_name']:<25}  ${amount:>7.2f}")
+            lines.append(f"| {txn['date']} | {txn['payee_name']} | ${amount:.2f} |")
 
-        print(f"  {'-'*50}")
-        print(f"  Total: ${spent:.2f}")
+        lines.extend([
+            f"",
+            f"**Total:** ${spent:.2f}",
+        ])
 
-    print()
+    report_content = "\n".join(lines)
+
+    # Save report
+    filepath = save_report("eating-out", report_content, month_label)
+
+    # Also print to console
+    print(report_content)
+    print(f"\n---\nReport saved to: {filepath}")
+
+    return report_content
 
 
 def main():
