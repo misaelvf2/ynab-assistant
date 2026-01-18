@@ -17,6 +17,7 @@ Run these via `python3 scripts/<script>.py`:
 | `net_worth.py` | When user asks about net worth, assets, liabilities, or financial health. Use `--save` to snapshot. |
 | `net_worth_history.py` | When user asks about net worth growth, trends, or historical analysis. Use `--months N` to adjust period. |
 | `review_transactions.py` | When reviewing transactions, checking for issues, or doing a financial checkup. |
+| `approve_transactions.py` | When user wants to review and approve unapproved transactions. Compares against historical patterns. Use `--approve` to auto-approve consistent ones, `--dry-run` to preview. |
 
 ## Key Rules
 

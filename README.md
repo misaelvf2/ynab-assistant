@@ -34,6 +34,7 @@ All scripts are in the `scripts/` directory. Run via `python3 scripts/<script>.p
 | `net_worth.py` | Current net worth snapshot | `--save` to snapshot, `--compare DATE` |
 | `net_worth_history.py` | Historical net worth trends | `--months N` (default 12) |
 | `review_transactions.py` | Flag transaction issues | `--days N`, `--memo-threshold N` |
+| `approve_transactions.py` | Review & approve transactions | `--approve` auto-approve, `--dry-run` preview |
 
 ## Reports
 
