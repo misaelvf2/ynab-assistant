@@ -37,6 +37,28 @@ All scripts are in the `scripts/` directory. Run via `python3 scripts/<script>.p
 | `approve_transactions.py` | Review & approve transactions | `--approve` auto-approve, `--dry-run` preview |
 | `spending_velocity.py` | Spending pace & projections | `--threshold N`, `--alerts-only` |
 
+## Web Dashboard
+
+A real-time dashboard showing all key metrics at a glance.
+
+```bash
+# Install dashboard dependencies
+pip install fastapi uvicorn jinja2
+
+# Start the dashboard
+python3 -m uvicorn dashboard.app:app --reload --port 8000
+
+# Open http://localhost:8000
+```
+
+**Features:**
+- Net worth with month-over-month change
+- Eating out tracker with progress bar and daily allowance
+- Spending velocity alerts (overspent, running hot)
+- Transaction issues summary
+- 12-month net worth trend chart
+- On-demand refresh button
+
 ## Reports
 
 Scripts generate reports in both Markdown and HTML formats, saved to `reports/`:

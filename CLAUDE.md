@@ -49,6 +49,18 @@ All scripts save markdown reports to `reports/`:
 
 Reports are overwritten when regenerated for the same period. Read previous reports with `Read` tool to compare or reference.
 
+## Web Dashboard
+
+Start the dashboard for an at-a-glance view:
+
+```bash
+python3 -m uvicorn dashboard.app:app --reload --port 8000
+```
+
+Open http://localhost:8000
+
+The dashboard uses `scripts/data_service.py` which provides structured data (dicts) instead of markdown. Use data_service functions when you need programmatic access to financial data.
+
 ## Common Requests
 
 - "How am I doing on eating out?" → Run `eating_out_tracker.py`
@@ -57,3 +69,4 @@ Reports are overwritten when regenerated for the same period. Read previous repo
 - "How has my net worth grown?" → Run `net_worth_history.py`
 - "Review my transactions" → Run `review_transactions.py`
 - "Financial checkup" → Run all scripts and summarize
+- "Show me the dashboard" → Start uvicorn and open browser

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YNAB Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen" x-data="dashboard()" x-init="init()">
+
+    <!-- Header -->
+    <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-gray-500" x-text="lastUpdated"></span>
+                <button
+                    @click="refresh()"
+                    :disabled="loading"
+                    class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                    <svg x-show="loading" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span x-text="loading ? 'Refreshing...' : 'Refresh'"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8" x-cloak>
+
+        <!-- Loading State -->
+        <div x-show="!data && loading" class="text-center py-12">
+            <div class="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+            <p class="mt-4 text-gray-600">Loading financial data...</p>
+        </div>
+
+        <template x-if="data">
+            <div class="space-y-6">
+
+                <!-- Net Worth Hero -->
+                <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-lg p-6 text-white">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-blue-200 text-sm uppercase tracking-wide">Net Worth</p>
+                            <p class="text-4xl font-bold mt-1" x-text="formatCurrency(data.net_worth.current)"></p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span
+                                    class="px-2 py-1 rounded text-sm font-medium"
+                                    :class="data.net_worth.mom_change >= 0 ? 'bg-green-500/30 text-green-100' : 'bg-red-500/30 text-red-100'"
+                                >
+                                    <span x-text="data.net_worth.mom_change >= 0 ? '+' : ''"></span>
+                                    <span x-text="formatCurrency(data.net_worth.mom_change)"></span>
+                                    (<span x-text="data.net_worth.mom_pct.toFixed(1)"></span>%)
+                                </span>
+                                <span class="text-blue-200 text-sm">vs last month</span>
+                            </div>
+                        </div>
+                        <div class="text-right text-blue-200">
+                            <p>Assets: <span class="text-white font-semibold" x-text="formatCurrency(data.net_worth.total_assets)"></span></p>
+                            <p>Liabilities: <span class="text-white font-semibold" x-text="formatCurrency(data.net_worth.total_liabilities)"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts -->
+                <template x-if="data.alerts.total > 0">
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div class="flex items-center gap-3">
+                            <svg class="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <span class="font-medium text-amber-800">
+                                <span x-text="data.alerts.total"></span> transactions need attention:
+                            </span>
+                            <div class="flex gap-4 text-sm text-amber-700">
+                                <span x-show="data.alerts.unapproved > 0"><span x-text="data.alerts.unapproved"></span> unapproved</span>
+                                <span x-show="data.alerts.uncategorized > 0"><span x-text="data.alerts.uncategorized"></span> uncategorized</span>
+                                <span x-show="data.alerts.missing_memo > 0"><span x-text="data.alerts.missing_memo"></span> missing memo</span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Main Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Eating Out Card -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900">Eating Out</h2>
+                            <span
+                                class="px-2 py-1 rounded text-xs font-medium uppercase"
+                                :class="{
+                                    'bg-green-100 text-green-800': data.eating_out.status === 'on_track',
+                                    'bg-yellow-100 text-yellow-800': data.eating_out.status === 'caution',
+                                    'bg-orange-100 text-orange-800': data.eating_out.status === 'warning',
+                                    'bg-red-100 text-red-800': data.eating_out.status === 'over'
+                                }"
+                                x-text="data.eating_out.status.replace('_', ' ')"
+                            ></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Spent</span>
+                                <span class="font-medium" x-text="formatCurrency(data.eating_out.spent) + ' / $' + data.eating_out.hard_cap"></span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div
+                                    class="h-3 rounded-full transition-all"
+                                    :class="{
+                                        'bg-green-500': data.eating_out.percent_used <= 50,
+                                        'bg-yellow-500': data.eating_out.percent_used > 50 && data.eating_out.percent_used <= 80,
+                                        'bg-orange-500': data.eating_out.percent_used > 80 && data.eating_out.percent_used <= 100,
+                                        'bg-red-500': data.eating_out.percent_used > 100
+                                    }"
+                                    :style="'width: ' + Math.min(data.eating_out.percent_used, 100) + '%'"
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(data.eating_out.remaining)"></p>
+                                <p class="text-xs text-gray-500">Remaining</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(data.eating_out.daily_allowance)"></p>
+                                <p class="text-xs text-gray-500">Per day</p>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-gray-500 mt-3 text-center">
+                            Day <span x-text="data.eating_out.days_elapsed"></span> of <span x-text="data.eating_out.days_in_month"></span>
+                            &bull; Projected: <span x-text="formatCurrency(data.eating_out.projected)"></span>
+                        </p>
+                    </div>
+
+                    <!-- Spending Velocity Card -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Spending Velocity</h2>
+
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">Month Progress</span>
+                                <span class="font-medium">Day <span x-text="data.velocity.day"></span> of <span x-text="data.velocity.days_in_month"></span></span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" :style="'width: ' + data.velocity.time_pct + '%'"></div>
+                            </div>
+                        </div>
+
+                        <template x-if="data.velocity.overspent.length > 0">
+                            <div class="mb-3">
+                                <p class="text-xs font-medium text-red-600 uppercase mb-2">Overspent</p>
+                                <template x-for="cat in data.velocity.overspent" :key="cat.name">
+                                    <div class="flex justify-between items-center py-1 text-sm">
+                                        <span class="text-gray-700" x-text="cat.name"></span>
+                                        <span class="text-red-600 font-medium" x-text="formatCurrency(cat.spent) + ' / ' + formatCurrency(cat.budgeted)"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-if="data.velocity.warning.length > 0">
+                            <div>
+                                <p class="text-xs font-medium text-amber-600 uppercase mb-2">Running Hot</p>
+                                <template x-for="cat in data.velocity.warning.slice(0, 4)" :key="cat.name">
+                                    <div class="flex justify-between items-center py-1 text-sm">
+                                        <span class="text-gray-700" x-text="cat.name"></span>
+                                        <span class="text-amber-600 font-medium">
+                                            +<span x-text="cat.pace_diff.toFixed(0)"></span>%
+                                        </span>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-if="data.velocity.overspent.length === 0 && data.velocity.warning.length === 0">
+                            <div class="text-center py-4 text-gray-500">
+                                <svg class="h-8 w-8 mx-auto mb-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="text-sm">All categories on track</p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Quick Stats Card -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Month Overview</h2>
+
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Overspent Categories</span>
+                                <span
+                                    class="text-xl font-bold"
+                                    :class="data.velocity.overspent_count > 0 ? 'text-red-600' : 'text-green-600'"
+                                    x-text="data.velocity.overspent_count"
+                                ></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Running Hot</span>
+                                <span
+                                    class="text-xl font-bold"
+                                    :class="data.velocity.warning_count > 0 ? 'text-amber-600' : 'text-green-600'"
+                                    x-text="data.velocity.warning_count"
+                                ></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Unapproved Txns</span>
+                                <span
+                                    class="text-xl font-bold"
+                                    :class="data.alerts.unapproved > 0 ? 'text-amber-600' : 'text-gray-400'"
+                                    x-text="data.alerts.unapproved"
+                                ></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Uncategorized</span>
+                                <span
+                                    class="text-xl font-bold"
+                                    :class="data.alerts.uncategorized > 0 ? 'text-amber-600' : 'text-gray-400'"
+                                    x-text="data.alerts.uncategorized"
+                                ></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Net Worth Chart -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Net Worth Trend (12 Months)</h2>
+                    <div class="h-64">
+                        <canvas id="netWorthChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </template>
+    </main>
+
+    <script>
+        function dashboard() {
+            return {
+                data: null,
+                loading: false,
+                lastUpdated: '',
+                chart: null,
+
+                async init() {
+                    await this.fetchData();
+                },
+
+                async fetchData() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch('/api/summary');
+                        this.data = await response.json();
+                        this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
+                        this.$nextTick(() => this.renderChart());
+                    } catch (error) {
+                        console.error('Failed to fetch data:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async refresh() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch('/api/refresh', { method: 'POST' });
+                        this.data = await response.json();
+                        this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
+                        this.$nextTick(() => this.renderChart());
+                    } catch (error) {
+                        console.error('Failed to refresh:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                formatCurrency(value) {
+                    return new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(value);
+                },
+
+                renderChart() {
+                    const ctx = document.getElementById('netWorthChart');
+                    if (!ctx || !this.data?.history) return;
+
+                    if (this.chart) {
+                        this.chart.destroy();
+                    }
+
+                    const labels = this.data.history.map(d => d.month);
+                    const netWorthData = this.data.history.map(d => d.net_worth);
+                    const assetsData = this.data.history.map(d => d.assets);
+                    const liabilitiesData = this.data.history.map(d => d.liabilities);
+
+                    this.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Net Worth',
+                                    data: netWorthData,
+                                    borderColor: '#2563eb',
+                                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                    fill: true,
+                                    tension: 0.3,
+                                    pointRadius: 3
+                                },
+                                {
+                                    label: 'Assets',
+                                    data: assetsData,
+                                    borderColor: '#16a34a',
+                                    borderDash: [5, 5],
+                                    fill: false,
+                                    tension: 0.3,
+                                    pointRadius: 0
+                                },
+                                {
+                                    label: 'Liabilities',
+                                    data: liabilitiesData,
+                                    borderColor: '#dc2626',
+                                    borderDash: [5, 5],
+                                    fill: false,
+                                    tension: 0.3,
+                                    pointRadius: 0
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top'
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.dataset.label + ': $' + context.raw.toLocaleString();
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: false,
+                                    ticks: {
+                                        callback: function(value) {
+                                            return '$' + (value / 1000).toFixed(0) + 'k';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
