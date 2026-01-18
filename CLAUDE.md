@@ -18,6 +18,7 @@ Run these via `python3 scripts/<script>.py`:
 | `net_worth_history.py` | When user asks about net worth growth, trends, or historical analysis. Use `--months N` to adjust period. |
 | `review_transactions.py` | When reviewing transactions, checking for issues, or doing a financial checkup. |
 | `approve_transactions.py` | When user wants to review and approve unapproved transactions. Compares against historical patterns. Use `--approve` to auto-approve consistent ones, `--dry-run` to preview. |
+| `spending_velocity.py` | When user asks about spending pace, budget runway, or projections. Shows which categories are running hot and projects month-end totals. Use `--alerts-only` for quick check. |
 
 ## Key Rules
 
