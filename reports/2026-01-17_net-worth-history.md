@@ -3,7 +3,11 @@
 **Period:** 2024-01 to 2026-01 (24 months)
 **Generated:** 2026-01-17
 
-## Summary
+## Executive Summary
+
+Over the past 24 months, your net worth has grown from $137,503 to $301,865—a gain of $164,362 (+119.5%). That's serious progress. Average monthly gain: $6,848. Best month: 2025-07 (+$40,410). Worst month: 2025-03 ($-3,579). Debt reduced by $15,254—good work paying things down.
+
+## Key Metrics
 
 | Metric | Value |
 |--------|-------|
@@ -12,6 +16,45 @@
 | Total Change | +$164,362.15 |
 | Percentage Change | +119.5% |
 | Avg Monthly Change | +$6,848.42 |
+
+## Discussion
+
+### Growth Trajectory
+
+Assets grew from $173,010 to $322,118, an increase of $149,109 (+86.2%). 
+Meanwhile, liabilities dropped from $35,507 to $20,253, a reduction of $15,254 (-43.0%). This double effect—assets up, debt down—is the ideal wealth-building pattern.
+
+### Consistency
+
+Out of 24 months, 19 were positive and 5 were negative (79% win rate). 
+Average winning month: +$9,141. Average losing month: $-1,864. Your gains are 4.9x your losses on average—
+that's a healthy asymmetry.
+
+### Volatility
+
+Monthly change standard deviation: $8,786. Mean monthly change: $6,848. 
+Moderate volatility. Expect some months to deviate significantly from the average.
+
+### Notable Months
+
+**Best months:**
+- 2025-07: +$40,410
+- 2024-05: +$16,547
+- 2025-09: +$13,072
+
+**Worst months:**
+- 2025-08: $-1,100
+- 2024-04: $-2,716
+- 2025-03: $-3,579
+
+The 2025-07 spike of +$40,410 stands out. This was likely a major event: property equity recorded, large bonus, or exceptional market month. Worth noting because it's not replicable every month.
+
+### Forward Look
+
+At the current average pace of $6,848/month, you'd reach $384,046 in 12 months and $466,227 in 24 months. 
+At this pace, you'd hit $350k in roughly 0.6 years.
+
+These projections assume consistent contributions and average market returns. Reality will vary—but the trajectory is yours to maintain.
 
 ## Monthly Breakdown
 
@@ -62,4 +105,4 @@
 
 ---
 
-*API calls: 23 fresh, 1 cached*
+*API calls: 1 fresh, 23 cached*

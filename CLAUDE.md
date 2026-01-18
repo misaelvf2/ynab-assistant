@@ -23,6 +23,7 @@ Run these via `python3 scripts/<script>.py`:
 1. **Eating out hard cap**: $600/month. Track this closely.
 2. **Large transactions**: Flag anything over $500 for review.
 3. **Memo requirement**: Transactions over $100 should have memos explaining what they're for.
+4. **Credit card balances**: These are paid in full every month—no interest carried. Treat as rolling monthly expenses, not problematic debt. Don't scold about credit card balances.
 
 ## Configuration
 

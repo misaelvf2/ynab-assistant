@@ -13,5 +13,8 @@
   "review_settings": {
     "flag_large_transactions_above": 500,
     "require_memo_for_transactions_above": 100
+  },
+  "notes": {
+    "credit_cards": "Balances are paid in full every month. No interest carried. These are rolling monthly expenses, not problematic debt."
   }
 }
