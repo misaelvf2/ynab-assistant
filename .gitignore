@@ -11,3 +11,7 @@ cache/
 # Python
 __pycache__/
 *.pyc
+
+# Reports (generated, not tracked)
+reports/*.md
+reports/*.html
