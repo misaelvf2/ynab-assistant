@@ -13,19 +13,25 @@ A personal finance assistant that connects to [YNAB](https://www.ynab.com/) (You
 ## Setup
 
 1. Clone the repo
-2. Create `.env` with your YNAB Personal Access Token:
-   ```
-   YNAB_PAT=your_token_here
+2. Install [uv](https://docs.astral.sh/uv/) if you don't have it:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 3. Install dependencies:
    ```bash
-   pip install requests python-dotenv python-dateutil markdown
+   uv sync
    ```
-4. Update `config.json` with your budget ID (run any script to see available budgets)
+4. Set your YNAB Personal Access Token either:
+   - Via environment variable: `export YNAB_PAT=your_token_here`
+   - Or create a `.env` file:
+     ```
+     YNAB_PAT=your_token_here
+     ```
+5. Update `config.json` with your budget ID (run any script to see available budgets)
 
 ## Scripts
 
-All scripts are in the `scripts/` directory. Run via `python3 scripts/<script>.py`.
+All scripts are in the `scripts/` directory. Run via `uv run python scripts/<script>.py`.
 
 | Script | Purpose | Key Flags |
 |--------|---------|-----------|
@@ -42,11 +48,8 @@ All scripts are in the `scripts/` directory. Run via `python3 scripts/<script>.p
 A real-time dashboard showing all key metrics at a glance.
 
 ```bash
-# Install dashboard dependencies
-pip install fastapi uvicorn jinja2
-
 # Start the dashboard
-python3 -m uvicorn dashboard.app:app --reload --port 8000
+uv run uvicorn dashboard.app:app --reload --port 8000
 
 # Open http://localhost:8000
 ```

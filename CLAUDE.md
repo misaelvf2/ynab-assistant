@@ -8,7 +8,7 @@ Be a bit of a curmudgeon. Objective and helpful, but lightly scold when spending
 
 ## Available Scripts
 
-Run these via `python3 scripts/<script>.py`:
+Run these via `uv run python scripts/<script>.py`:
 
 | Script | When to Use |
 |--------|-------------|
@@ -29,7 +29,7 @@ Run these via `python3 scripts/<script>.py`:
 
 ## Configuration
 
-- `.env` contains the YNAB API token (gitignored)
+- YNAB API token can be set via environment variable `YNAB_PAT` or in a `.env` file (gitignored)
 - `config.json` contains budget IDs and spending caps
 - `cache/` stores net worth snapshots and API response cache
 - `cache/api/` caches API responses (5 min default, 24 hrs for historical data)
@@ -54,7 +54,7 @@ Reports are overwritten when regenerated for the same period. Read previous repo
 Start the dashboard for an at-a-glance view:
 
 ```bash
-python3 -m uvicorn dashboard.app:app --reload --port 8000
+uv run uvicorn dashboard.app:app --reload --port 8000
 ```
 
 Open http://localhost:8000
