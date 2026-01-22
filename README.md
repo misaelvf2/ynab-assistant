@@ -13,19 +13,25 @@ A personal finance assistant that connects to [YNAB](https://www.ynab.com/) (You
 ## Setup
 
 1. Clone the repo
-2. Create `.env` with your YNAB Personal Access Token:
-   ```
-   YNAB_PAT=your_token_here
+2. Install [uv](https://docs.astral.sh/uv/) if you don't have it:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 3. Install dependencies:
    ```bash
-   pip install requests python-dotenv python-dateutil markdown
+   uv sync
    ```
-4. Update `config.json` with your budget ID (run any script to see available budgets)
+4. Set your YNAB Personal Access Token either:
+   - Via environment variable: `export YNAB_PAT=your_token_here`
+   - Or create a `.env` file:
+     ```
+     YNAB_PAT=your_token_here
+     ```
+5. Update `config.json` with your budget ID (run any script to see available budgets)
 
 ## Scripts
 
-All scripts are in the `scripts/` directory. Run via `python3 scripts/<script>.py`.
+All scripts are in the `scripts/` directory. Run via `uv run python scripts/<script>.py`.
 
 | Script | Purpose | Key Flags |
 |--------|---------|-----------|
@@ -36,6 +42,25 @@ All scripts are in the `scripts/` directory. Run via `python3 scripts/<script>.p
 | `review_transactions.py` | Flag transaction issues | `--days N`, `--memo-threshold N` |
 | `approve_transactions.py` | Review & approve transactions | `--approve` auto-approve, `--dry-run` preview |
 | `spending_velocity.py` | Spending pace & projections | `--threshold N`, `--alerts-only` |
+
+## Web Dashboard
+
+A real-time dashboard showing all key metrics at a glance.
+
+```bash
+# Start the dashboard
+uv run uvicorn dashboard.app:app --reload --port 8000
+
+# Open http://localhost:8000
+```
+
+**Features:**
+- Net worth with month-over-month change
+- Eating out tracker with progress bar and daily allowance
+- Spending velocity alerts (overspent, running hot)
+- Transaction issues summary
+- 12-month net worth trend chart
+- On-demand refresh button
 
 ## Reports
 

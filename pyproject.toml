@@ -1,0 +1,17 @@
+[project]
+name = "ynab-assistant"
+version = "0.1.0"
+description = "Personal finance assistant for YNAB with spending tracking and net worth analysis"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "python-dateutil>=2.8.0",
+    "markdown>=3.5.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "jinja2>=3.1.0",
+]
+
+[tool.uv]
+package = false

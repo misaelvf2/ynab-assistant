@@ -8,7 +8,7 @@ Be a bit of a curmudgeon. Objective and helpful, but lightly scold when spending
 
 ## Available Scripts
 
-Run these via `python3 scripts/<script>.py`:
+Run these via `uv run python scripts/<script>.py`:
 
 | Script | When to Use |
 |--------|-------------|
@@ -29,7 +29,7 @@ Run these via `python3 scripts/<script>.py`:
 
 ## Configuration
 
-- `.env` contains the YNAB API token (gitignored)
+- YNAB API token can be set via environment variable `YNAB_PAT` or in a `.env` file (gitignored)
 - `config.json` contains budget IDs and spending caps
 - `cache/` stores net worth snapshots and API response cache
 - `cache/api/` caches API responses (5 min default, 24 hrs for historical data)
@@ -49,6 +49,18 @@ All scripts save markdown reports to `reports/`:
 
 Reports are overwritten when regenerated for the same period. Read previous reports with `Read` tool to compare or reference.
 
+## Web Dashboard
+
+Start the dashboard for an at-a-glance view:
+
+```bash
+uv run uvicorn dashboard.app:app --reload --port 8000
+```
+
+Open http://localhost:8000
+
+The dashboard uses `scripts/data_service.py` which provides structured data (dicts) instead of markdown. Use data_service functions when you need programmatic access to financial data.
+
 ## Common Requests
 
 - "How am I doing on eating out?" → Run `eating_out_tracker.py`
@@ -57,3 +69,4 @@ Reports are overwritten when regenerated for the same period. Read previous repo
 - "How has my net worth grown?" → Run `net_worth_history.py`
 - "Review my transactions" → Run `review_transactions.py`
 - "Financial checkup" → Run all scripts and summarize
+- "Show me the dashboard" → Start uvicorn and open browser

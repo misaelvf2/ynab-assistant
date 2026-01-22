@@ -8,6 +8,7 @@ import requests
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional
+from dotenv import load_dotenv
 
 # Find project root (where .env lives)
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -25,16 +26,23 @@ CACHE_TTL_HISTORICAL = 86400  # 24 hours for historical/static data
 
 
 def load_token() -> str:
-    """Load YNAB PAT from .env file"""
-    if not ENV_FILE.exists():
-        raise FileNotFoundError(f"No .env file found at {ENV_FILE}")
+    """Load YNAB PAT from environment or .env file
 
-    with open(ENV_FILE) as f:
-        for line in f:
-            if line.startswith("YNAB_PAT="):
-                return line.strip().split("=", 1)[1]
+    Loads from .env file if it exists, but will also use environment variables
+    if already set (e.g., in Docker, CI/CD, or shell). Environment variables
+    take precedence over .env file values.
+    """
+    # Load .env file if it exists (won't override existing env vars)
+    load_dotenv(ENV_FILE)
 
-    raise ValueError("YNAB_PAT not found in .env file")
+    token = os.getenv("YNAB_PAT")
+    if not token:
+        raise ValueError(
+            "YNAB_PAT not found in environment or .env file. "
+            f"Either set the YNAB_PAT environment variable or create {ENV_FILE} with YNAB_PAT=your_token"
+        )
+
+    return token
 
 
 def load_config() -> dict:
