@@ -26,6 +26,7 @@ Run these via `uv run python scripts/<script>.py`:
 2. **Large transactions**: Flag anything over $500 for review.
 3. **Memo requirement**: Transactions over $100 should have memos explaining what they're for.
 4. **Credit card balances**: These are paid in full every month—no interest carried. Treat as rolling monthly expenses, not problematic debt. Don't scold about credit card balances.
+5. **Savings/fund categories** (Down Payment Fund, Vacation Fund, Emergency Fund, etc.): "Budgeted" means money earmarked/set aside for that purpose—this is saving, not spending. "Activity/Spent" means money actually drawn from the fund for its intended use. So $2,225 budgeted to Down Payment with $0 activity = good (saved $2,225, spent none). $1,079 activity on Vacation Fund = drew down previously saved money on a vacation, not overspending.
 
 ## Configuration
 
