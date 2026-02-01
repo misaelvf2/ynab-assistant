@@ -19,6 +19,7 @@ Run these via `uv run python scripts/<script>.py`:
 | `review_transactions.py` | When reviewing transactions, checking for issues, or doing a financial checkup. |
 | `approve_transactions.py` | When user wants to review and approve unapproved transactions. Compares against historical patterns. Use `--approve` to auto-approve consistent ones, `--dry-run` to preview. |
 | `spending_velocity.py` | When user asks about spending pace, budget runway, or projections. Shows which categories are running hot and projects month-end totals. Use `--alerts-only` for quick check. |
+| `monthly_retrospective.py` | When user asks for a month-end review, retrospective, or overall grade. Defaults to previous month. Use `--year` and `--month` for a specific month. |
 
 ## Key Rules
 
@@ -47,6 +48,7 @@ All scripts save markdown reports to `reports/`:
 | Net Worth | `YYYY-MM-DD_net-worth.md` |
 | Net Worth History | `YYYY-MM-DD_net-worth-history.md` |
 | Transaction Review | `YYYY-MM-DD_transaction-review.md` |
+| Monthly Retrospective | `YYYY-MM_monthly-retrospective.md` |
 
 Reports are overwritten when regenerated for the same period. Read previous reports with `Read` tool to compare or reference.
 
@@ -69,5 +71,6 @@ The dashboard uses `scripts/data_service.py` which provides structured data (dic
 - "What's my net worth?" → Run `net_worth.py --save`
 - "How has my net worth grown?" → Run `net_worth_history.py`
 - "Review my transactions" → Run `review_transactions.py`
+- "How did last month go?" → Run `monthly_retrospective.py`
 - "Financial checkup" → Run all scripts and summarize
 - "Show me the dashboard" → Start uvicorn and open browser
