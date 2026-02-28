@@ -92,27 +92,38 @@ def review_and_approve(days: int = 30, auto_approve: bool = False, dry_run: bool
     history_since = today - timedelta(days=365)
     all_txns = client.get_transactions(since_date=history_since.strftime('%Y-%m-%d'))
 
-    # Filter to unapproved, non-deleted, non-transfer
+    UNCATEGORIZED_NAMES = {'Uncategorized', 'Inflow: Ready to Assign', '', None}
+
+    # Filter to non-deleted, non-transfer transactions needing attention
     unapproved = [
         t for t in recent_txns
-        if not t['approved']
-        and not t['deleted']
+        if not t['deleted']
         and t['transfer_account_id'] is None
+        and (not t['approved'] or t.get('category_name') in UNCATEGORIZED_NAMES)
     ]
 
     if not unapproved:
-        msg = f"No unapproved transactions in the last {days} days."
+        msg = f"No transactions needing attention in the last {days} days."
         print(msg)
         return msg
+
+    needs_approval = [t for t in unapproved if not t['approved']]
+    needs_categorization = [t for t in unapproved if t['approved'] and t.get('category_name') in UNCATEGORIZED_NAMES]
 
     lines = [
         f"# Transaction Approval Review - {today}",
         f"",
         f"**Period:** Last {days} days",
-        f"**Unapproved transactions:** {len(unapproved)}",
+        f"**Transactions needing attention:** {len(unapproved)}",
+    ]
+    if needs_approval:
+        lines.append(f"**Unapproved:** {len(needs_approval)}")
+    if needs_categorization:
+        lines.append(f"**Uncategorized:** {len(needs_categorization)}")
+    lines.extend([
         f"**Mode:** {'Dry run' if dry_run else 'Auto-approve consistent' if auto_approve else 'Review only'}",
         f"",
-    ]
+    ])
 
     approved_count = 0
     flagged_count = 0
