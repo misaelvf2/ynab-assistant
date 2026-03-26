@@ -5,7 +5,7 @@ Spending Velocity - Track spending pace and project month-end totals
 import argparse
 from datetime import date, timedelta
 from calendar import monthrange
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars,
     get_month_start_date, save_report
 )

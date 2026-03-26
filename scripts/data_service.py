@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from calendar import monthrange
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, load_config, milliunits_to_dollars,
     get_month_start_date
 )

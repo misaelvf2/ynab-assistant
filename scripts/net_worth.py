@@ -6,7 +6,7 @@ import argparse
 import json
 from datetime import date
 from pathlib import Path
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars,
     CACHE_DIR, save_report
 )

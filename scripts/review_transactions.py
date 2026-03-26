@@ -5,7 +5,7 @@ Transaction Review Flags - Surface transactions that need attention
 import argparse
 from collections import defaultdict
 from datetime import date, timedelta
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars,
     get_month_start_date, save_report
 )

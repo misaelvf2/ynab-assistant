@@ -21,7 +21,7 @@ from data_service import (
     get_spending_velocity_data,
     get_transaction_issues
 )
-from ynab_client import YNABClient
+from ynab_assistant import YNABClient
 
 app = FastAPI(title="YNAB Dashboard", version="1.0.0")
 

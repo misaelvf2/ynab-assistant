@@ -5,7 +5,7 @@ Monthly Spending Summary - Shows spending by category vs budget
 import argparse
 from collections import defaultdict
 from datetime import date
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, get_month_string,
     milliunits_to_dollars, save_report
 )

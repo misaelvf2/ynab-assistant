@@ -3,11 +3,9 @@
 Transaction Approval - Review unapproved transactions against historical patterns
 """
 import argparse
-import requests
-from collections import defaultdict
 from datetime import date, timedelta
-from ynab_client import (
-    YNABClient, load_token, load_config, format_currency,
+from ynab_assistant import (
+    YNABClient, format_currency,
     milliunits_to_dollars, save_report
 )
 
@@ -62,26 +60,18 @@ def analyze_consistency(txn: dict, history: list) -> dict:
     return result
 
 
-def approve_transaction(budget_id: str, txn_id: str, token: str) -> bool:
+def approve_transaction(client: YNABClient, txn_id: str) -> bool:
     """Approve a transaction via YNAB API."""
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
-    }
-    resp = requests.patch(
-        f'https://api.ynab.com/v1/budgets/{budget_id}/transactions/{txn_id}',
-        headers=headers,
-        json={'transaction': {'approved': True}}
-    )
-    return resp.status_code == 200
+    try:
+        client.update_transaction(txn_id, approved=True)
+        return True
+    except Exception:
+        return False
 
 
 def review_and_approve(days: int = 30, auto_approve: bool = False, dry_run: bool = False) -> str:
     """Review unapproved transactions and optionally approve consistent ones."""
     client = YNABClient()
-    config = load_config()
-    token = load_token()
-    budget_id = config['ynab']['budget_id']
     today = date.today()
 
     # Get recent transactions
@@ -170,7 +160,7 @@ def review_and_approve(days: int = 30, auto_approve: bool = False, dry_run: bool
 
             action = ""
             if auto_approve and not dry_run:
-                if approve_transaction(budget_id, txn['id'], token):
+                if approve_transaction(client, txn['id']):
                     action = "Approved"
                     approved_count += 1
                 else:

@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import date, datetime
 from pathlib import Path
 from dateutil.relativedelta import relativedelta
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars, save_report,
     REPORTS_DIR
 )

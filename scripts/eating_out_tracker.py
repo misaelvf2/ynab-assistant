@@ -5,7 +5,7 @@ Eating Out Tracker - Track spending against monthly hard cap
 import argparse
 from datetime import date
 from calendar import monthrange
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, get_month_string,
     get_month_start_date, milliunits_to_dollars, save_report
 )
