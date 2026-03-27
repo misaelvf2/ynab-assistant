@@ -1,6 +1,7 @@
 """
 Shared constants and utility functions for the YNAB assistant.
 """
+
 import os
 import json
 from datetime import date

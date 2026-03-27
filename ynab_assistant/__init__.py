@@ -1,6 +1,7 @@
 """
 YNAB Assistant — API client, utilities, and report generation.
 """
+
 from ynab_assistant.client import YNABClient
 from ynab_assistant.utils import (
     milliunits_to_dollars,

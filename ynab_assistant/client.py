@@ -8,6 +8,7 @@ This wrapper exists for two reasons only:
 It is NOT meant to mirror the SDK's API surface. For operations not covered
 by the convenience methods below, use client.api directly.
 """
+
 import json
 import hashlib
 from datetime import datetime, date, timedelta
@@ -30,8 +31,8 @@ def _model_to_dict(obj) -> dict | list | str | int | float | bool | None:
     """
     if isinstance(obj, list):
         return [_model_to_dict(item) for item in obj]
-    if hasattr(obj, 'model_dump'):
-        return obj.model_dump(mode='json', by_alias=True)
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump(mode="json", by_alias=True)
     return obj
 
 
@@ -60,7 +61,7 @@ class YNABClient:
     def _cache_key(self, label: str, *args, **kwargs) -> str:
         key_data = label + json.dumps(
             [str(a) for a in args] + [f"{k}={v}" for k, v in sorted(kwargs.items())],
-            sort_keys=True
+            sort_keys=True,
         )
         return hashlib.md5(key_data.encode()).hexdigest()
 
@@ -92,8 +93,15 @@ class YNABClient:
 
     # -- Core: cached SDK call ------------------------------------------------
 
-    def cached_call(self, label, sdk_callable, *args,
-                    extract=lambda r: r, ttl=CACHE_TTL_DEFAULT, **kwargs):
+    def cached_call(
+        self,
+        label,
+        sdk_callable,
+        *args,
+        extract=lambda r: r,
+        ttl=CACHE_TTL_DEFAULT,
+        **kwargs,
+    ):
         """Call an SDK method with caching and dict conversion.
 
         Args:
@@ -132,13 +140,17 @@ class YNABClient:
 
     def get_accounts(self) -> list:
         return self.cached_call(
-            "get_accounts", self._accounts_api.get_accounts, self.budget_id,
+            "get_accounts",
+            self._accounts_api.get_accounts,
+            self.budget_id,
             extract=lambda r: r.data.accounts,
         )
 
     def get_categories(self) -> list:
         return self.cached_call(
-            "get_categories", self._categories_api.get_categories, self.budget_id,
+            "get_categories",
+            self._categories_api.get_categories,
+            self.budget_id,
             extract=lambda r: r.data.category_groups,
         )
 
@@ -147,43 +159,59 @@ class YNABClient:
         if since_date:
             kwargs["since_date"] = date.fromisoformat(since_date)
         return self.cached_call(
-            "get_transactions", self._transactions_api.get_transactions,
-            self.budget_id, **kwargs,
+            "get_transactions",
+            self._transactions_api.get_transactions,
+            self.budget_id,
+            **kwargs,
             extract=lambda r: r.data.transactions,
         )
 
     def get_month(self, month: str) -> dict:
         return self.cached_call(
-            "get_month", self._months_api.get_plan_month,
-            self.budget_id, date.fromisoformat(month),
+            "get_month",
+            self._months_api.get_plan_month,
+            self.budget_id,
+            date.fromisoformat(month),
             extract=lambda r: r.data.month,
         )
 
     def get_category_by_month(self, category_id: str, month: str) -> dict:
         return self.cached_call(
-            "get_category_by_month", self._categories_api.get_month_category_by_id,
-            self.budget_id, date.fromisoformat(month), category_id,
+            "get_category_by_month",
+            self._categories_api.get_month_category_by_id,
+            self.budget_id,
+            date.fromisoformat(month),
+            category_id,
             extract=lambda r: r.data.category,
         )
 
     def get_account_transactions(self, account_id: str) -> list:
         return self.cached_call(
-            "get_account_transactions", self._transactions_api.get_transactions_by_account,
-            self.budget_id, account_id,
+            "get_account_transactions",
+            self._transactions_api.get_transactions_by_account,
+            self.budget_id,
+            account_id,
             extract=lambda r: r.data.transactions,
             ttl=CACHE_TTL_HISTORICAL,
         )
 
     def get_all_transactions(self) -> list:
         return self.cached_call(
-            "get_all_transactions", self._transactions_api.get_transactions, self.budget_id,
+            "get_all_transactions",
+            self._transactions_api.get_transactions,
+            self.budget_id,
             extract=lambda r: r.data.transactions,
             ttl=CACHE_TTL_HISTORICAL,
         )
 
-    def update_transaction(self, transaction_id: str, approved: Optional[bool] = None,
-                           memo: Optional[str] = None, category_id: Optional[str] = None,
-                           flag_color: Optional[str] = None) -> dict:
+    def update_transaction(
+        self,
+        transaction_id: str,
+        approved: Optional[bool] = None,
+        memo: Optional[str] = None,
+        category_id: Optional[str] = None,
+        flag_color: Optional[str] = None,
+    ) -> dict:
         """Update a transaction. Not cached (write operation)."""
         fields = {}
         if approved is not None:
