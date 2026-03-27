@@ -1,0 +1,31 @@
+{
+  "spending_caps": {
+    "eating_out": {
+      "monthly_limit": 600,
+      "category_name": "Eating Out",
+      "category_id": "38cafc4b-9de8-4b2f-8ec1-44e3e8be7006"
+    }
+  },
+  "net_worth": {
+    "milestones": [350000, 400000, 500000, 750000, 1000000],
+    "debt_concern_threshold": 5000
+  },
+  "grading": {
+    "dimensions": {
+      "budget_adherence": {"max_points": 30, "weight": "total spent / total budgeted ratio"},
+      "eating_out_discipline": {"max_points": 25, "weight": "spend vs eating out cap"},
+      "savings_contributions": {"max_points": 25, "weight": "total budgeted in savings categories"},
+      "transaction_hygiene": {"max_points": 20, "weight": "deduct per uncategorized / missing memo"}
+    },
+    "letter_grades": {
+      "A": 90,
+      "B": 80,
+      "C": 70,
+      "D": 60
+    }
+  },
+  "notes": {
+    "credit_cards": "Balances are paid in full every month. No interest carried. These are rolling monthly expenses, not problematic debt.",
+    "savings_fund_categories": "For fund categories (Down Payment Fund, Vacation Fund, Emergency Fund, etc.), 'budgeted' means money earmarked/set aside—this is saving. 'Activity/spent' means money drawn from the fund for its intended use. Budgeted is good; activity is spending down savings."
+  }
+}

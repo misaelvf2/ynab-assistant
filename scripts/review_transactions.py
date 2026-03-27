@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars,
-    get_month_start_date, save_report
+    get_month_start_date, save_report, load_config
 )
 
 
@@ -59,7 +59,11 @@ def generate_executive_summary(total_txns: int, uncategorized: list,
 
 def review_transactions(days: int = 30, memo_threshold: float = 100) -> str:
     client = YNABClient()
+    config = load_config()
     today = date.today()
+
+    system_cats = config.get("interpretation", {}).get("system_categories", {})
+    uncategorized_name = system_cats.get("uncategorized", "Uncategorized")
 
     since = today - timedelta(days=days)
     since_str = since.strftime("%Y-%m-%d")
@@ -82,7 +86,7 @@ def review_transactions(days: int = 30, memo_threshold: float = 100) -> str:
         amount = txn["amount"]
         abs_amount = abs(amount)
 
-        if txn["category_name"] == "Uncategorized" or txn["category_id"] is None:
+        if txn["category_name"] == uncategorized_name or txn["category_id"] is None:
             if amount < 0:
                 uncategorized.append(txn)
 

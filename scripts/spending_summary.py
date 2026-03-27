@@ -39,7 +39,7 @@ def generate_executive_summary(categories_data: list, total_spent: int,
             over_budget.append((cat["name"], spent, cat["budgeted"]))
         elif pct > 80:
             close_to_limit.append((cat["name"], pct))
-        elif pct < 30 and cat["budgeted"] > 50000:  # > $50 budgeted
+        elif pct < 30 and cat["budgeted"] > 50000:
             well_under.append((cat["name"], pct))
 
     # Overall assessment

@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).parent.parent
 ENV_FILE = PROJECT_ROOT / ".env"
 CONFIG_FILE = PROJECT_ROOT / "config.json"
+USER_CONFIG_FILE = PROJECT_ROOT / "user_config.json"
 CACHE_DIR = PROJECT_ROOT / "cache"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 API_CACHE_DIR = CACHE_DIR / "api"
@@ -42,6 +43,19 @@ def load_config() -> dict:
         raise FileNotFoundError(f"No config.json found at {CONFIG_FILE}")
 
     with open(CONFIG_FILE) as f:
+        return json.load(f)
+
+
+def load_user_config() -> dict:
+    """Load user_config.json if it exists, otherwise return empty dict.
+
+    user_config.json contains user-specific settings (spending caps,
+    milestones, grading rules) that are generated during onboarding.
+    """
+    if not USER_CONFIG_FILE.exists():
+        return {}
+
+    with open(USER_CONFIG_FILE) as f:
         return json.load(f)
 
 

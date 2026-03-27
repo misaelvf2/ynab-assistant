@@ -8,7 +8,7 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from ynab_assistant import (
     YNABClient, format_currency, get_month_string,
-    milliunits_to_dollars, save_report, load_config
+    milliunits_to_dollars, save_report, load_config, load_user_config
 )
 
 
@@ -18,13 +18,17 @@ def get_previous_month():
     return prev.year, prev.month
 
 
-def calculate_income(transactions):
-    """Sum inflows where category is 'Inflow: Ready to Assign' and not a transfer."""
+def calculate_income(transactions, config=None):
+    """Sum inflows where category is the inflow category and not a transfer."""
+    config = config or load_config()
+    system_cats = config.get("interpretation", {}).get("system_categories", {})
+    inflow_name = system_cats.get("inflow", "Inflow: Ready to Assign")
+
     total = 0
     for txn in transactions:
         if txn["deleted"]:
             continue
-        if txn["category_name"] == "Inflow: Ready to Assign" and txn["transfer_account_id"] is None:
+        if txn["category_name"] == inflow_name and txn["transfer_account_id"] is None:
             total += txn["amount"]
     return total
 
@@ -59,9 +63,9 @@ def build_spending_overview(categories, config=None):
     return dict(groups)
 
 
-def build_eating_out_section(client, month_str, config):
+def build_eating_out_section(client, month_str, user_config):
     """Fetch eating out category and compare against hard cap."""
-    eating_out_config = config["spending_caps"]["eating_out"]
+    eating_out_config = user_config["spending_caps"]["eating_out"]
     monthly_cap = eating_out_config["monthly_limit"]
     category_id = eating_out_config["category_id"]
 
@@ -162,9 +166,11 @@ def reconstruct_net_worth(client, year, month):
 
 
 def build_notable_transactions(transactions, config):
-    """Flag large transactions (>$500), uncategorized, and missing memos (>$100)."""
+    """Flag large transactions, uncategorized, and missing memos."""
     large_threshold = config["review_settings"]["flag_large_transactions_above"]
     memo_threshold = config["review_settings"]["require_memo_for_transactions_above"]
+    system_cats = config.get("interpretation", {}).get("system_categories", {})
+    uncategorized_name = system_cats.get("uncategorized", "Uncategorized")
 
     large_threshold_mu = int(large_threshold * 1000)
     memo_threshold_mu = int(memo_threshold * 1000)
@@ -182,7 +188,7 @@ def build_notable_transactions(transactions, config):
         if abs_amount >= large_threshold_mu and txn["amount"] < 0:
             large.append(txn)
 
-        if (txn["category_name"] == "Uncategorized" or txn["category_id"] is None) and txn["amount"] < 0:
+        if (txn["category_name"] == uncategorized_name or txn["category_id"] is None) and txn["amount"] < 0:
             uncategorized.append(txn)
 
         if abs_amount >= memo_threshold_mu and not txn["memo"]:
@@ -842,9 +848,10 @@ def generate_retrospective(year=None, month=None):
     ]
 
     # Build each section
-    income = calculate_income(month_txns)
+    user_config = load_user_config()
+    income = calculate_income(month_txns, client.config)
     spending = build_spending_overview(categories)
-    eating_out = build_eating_out_section(client, month_str, client.config)
+    eating_out = build_eating_out_section(client, month_str, user_config)
     savings = build_savings_section(categories)
     notable = build_notable_transactions(month_txns, client.config)
 

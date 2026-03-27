@@ -7,7 +7,8 @@ from datetime import date
 from calendar import monthrange
 from ynab_assistant import (
     YNABClient, format_currency, get_month_string,
-    get_month_start_date, milliunits_to_dollars, save_report
+    get_month_start_date, milliunits_to_dollars, save_report,
+    load_user_config
 )
 
 
@@ -63,8 +64,9 @@ def generate_executive_summary(spent: float, monthly_cap: float, daily_avg: floa
 
 def track_eating_out(year: int = None, month: int = None, show_transactions: bool = False) -> str:
     client = YNABClient()
+    user_config = load_user_config()
 
-    eating_out_config = client.config["spending_caps"]["eating_out"]
+    eating_out_config = user_config["spending_caps"]["eating_out"]
     monthly_cap = eating_out_config["monthly_limit"]
     category_id = eating_out_config["category_id"]
 

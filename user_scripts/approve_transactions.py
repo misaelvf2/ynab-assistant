@@ -6,7 +6,7 @@ import argparse
 from datetime import date, timedelta
 from ynab_assistant import (
     YNABClient, format_currency,
-    milliunits_to_dollars, save_report
+    milliunits_to_dollars, save_report, load_config
 )
 
 
@@ -82,7 +82,13 @@ def review_and_approve(days: int = 30, auto_approve: bool = False, dry_run: bool
     history_since = today - timedelta(days=365)
     all_txns = client.get_transactions(since_date=history_since.strftime('%Y-%m-%d'))
 
-    UNCATEGORIZED_NAMES = {'Uncategorized', 'Inflow: Ready to Assign', '', None}
+    config = load_config()
+    system_cats = config.get("interpretation", {}).get("system_categories", {})
+    UNCATEGORIZED_NAMES = {
+        system_cats.get("uncategorized", "Uncategorized"),
+        system_cats.get("inflow", "Inflow: Ready to Assign"),
+        '', None
+    }
 
     # Filter to non-deleted, non-transfer transactions needing attention
     unapproved = [

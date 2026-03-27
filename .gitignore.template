@@ -1,0 +1,25 @@
+# Sensitive files - NEVER commit
+.env
+*.secret
+
+# OS files
+.DS_Store
+
+# Cached data
+cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Reports (generated, not tracked)
+reports/*.md
+reports/*.html
+
+# User-specific files (generated during onboarding)
+user_config.json
+user_scripts/
+.claude/skills/personal-budget/tone-guide.md
+dashboard/plugins/*.py
+!dashboard/plugins/__init__.py

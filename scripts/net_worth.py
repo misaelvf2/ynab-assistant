@@ -71,8 +71,6 @@ def generate_executive_summary(net_worth: int, total_assets: int, total_liabilit
         elif loan_debt > 0:
             lines.append(f"Loan debt totals ${loan_debt:,.0f}.")
 
-        if cc_debt > 5000:
-            lines.append("That credit card balance needs attention—interest is eating your returns.")
     else:
         lines.append("No debt. Impressive, if true.")
 

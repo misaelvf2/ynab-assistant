@@ -10,7 +10,7 @@ from pathlib import Path
 from dateutil.relativedelta import relativedelta
 from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars, save_report,
-    REPORTS_DIR
+    load_user_config, REPORTS_DIR
 )
 
 
@@ -113,10 +113,10 @@ def generate_executive_summary(monthly_data: list, total_change: int,
     last_liab = milliunits_to_dollars(monthly_data[-1]["liabilities"])
     liab_change = last_liab - first_liab
 
-    if liab_change < -5000:
-        lines.append(f"Debt reduced by ${abs(liab_change):,.0f}—good work paying things down.")
-    elif liab_change > 5000:
-        lines.append(f"Debt increased by ${liab_change:,.0f}. Keep an eye on that.")
+    if liab_change < 0:
+        lines.append(f"Debt reduced by ${abs(liab_change):,.0f}.")
+    elif liab_change > 0:
+        lines.append(f"Debt increased by ${liab_change:,.0f}.")
 
     return " ".join(lines)
 
@@ -262,16 +262,6 @@ def generate_discussion(monthly_data: list, months_back: int) -> str:
 
     lines.append("")
 
-    # Big swings deserve explanation
-    best_month, best_change = sorted_changes[0]
-    if best_change > 20000000:  # > $20k
-        lines.append(
-            f"The {best_month} spike of +${milliunits_to_dollars(best_change):,.0f} stands out. "
-            f"This was likely a major event: property equity recorded, large bonus, or exceptional market month. "
-            f"Worth noting because it's not replicable every month."
-        )
-        lines.append("")
-
     # Projected future
     lines.append("### Forward Look")
     lines.append("")
@@ -286,15 +276,17 @@ def generate_discussion(monthly_data: list, months_back: int) -> str:
         f"and ${milliunits_to_dollars(projected_24mo):,.0f} in 24 months. "
     )
 
-    # Milestone projections
-    milestones = [350000, 400000, 500000, 750000, 1000000]
+    # Milestone projections (from user_config.json if available)
+    user_config = load_user_config()
+    milestones = user_config.get("net_worth", {}).get("milestones", [])
+
     current_nw_dollars = milliunits_to_dollars(last["net_worth"])
     avg_monthly_dollars = milliunits_to_dollars(avg_monthly)
 
-    for milestone in milestones:
-        if milestone > current_nw_dollars and avg_monthly_dollars > 0:
-            months_to_milestone = (milestone - current_nw_dollars) / avg_monthly_dollars
-            if months_to_milestone <= 60:  # Within 5 years
+    if milestones and avg_monthly_dollars > 0:
+        for milestone in milestones:
+            if milestone > current_nw_dollars:
+                months_to_milestone = (milestone - current_nw_dollars) / avg_monthly_dollars
                 years = months_to_milestone / 12
                 lines.append(
                     f"At this pace, you'd hit ${milestone/1000:.0f}k in roughly {years:.1f} years."
