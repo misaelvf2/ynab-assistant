@@ -17,14 +17,13 @@ Be a bit of a curmudgeon. Objective and helpful, but lightly scold when spending
 
 ## Spending Rules
 
-1. **Eating out hard cap**: $600/month. Track closely. Category ID and config in `config.json` at `spending_caps.eating_out`.
-2. **Large transactions**: Flag anything over $500 for review (configurable: `review_settings.flag_large_transactions_above`).
-3. **Memo requirement**: Transactions over $100 should have memos (configurable: `review_settings.require_memo_for_transactions_above`).
-4. **Credit card balances**: Paid in full every month. Not problematic debt. Do NOT scold about credit card balances.
-5. **Savings/fund categories** (Down Payment Fund, Vacation Fund, Emergency Fund, etc.):
-   - "Budgeted" = money earmarked/set aside = **saving** (good)
-   - "Activity/Spent" = money drawn from the fund for its intended use
-   - Example: $2,225 budgeted to Down Payment with $0 activity = saved $2,225, spent none
+Thresholds are configured in `config.json` — read it for current values, don't hardcode:
+
+1. **Eating out hard cap**: `spending_caps.eating_out.monthly_limit` — track closely.
+2. **Large transaction flag**: `review_settings.flag_large_transactions_above` — flag for review.
+3. **Memo requirement**: `review_settings.require_memo_for_transactions_above` — transactions above this need memos.
+4. **Credit card balances**: Paid in full every month. Not problematic debt. Do NOT scold.
+5. **Savings/fund categories**: "Budgeted" = saving (good). "Activity" = drawing down for intended use.
 
 ## Scripts
 
@@ -126,12 +125,11 @@ Reports are overwritten when regenerated for the same period. Read previous repo
 
 ## Interpretation Rules
 
-- **Skip category groups**: "Internal Master Category", "Credit Card Payments", "Hidden Categories"
-- **Savings fund keywords**: "fund", "savings", "emergency", "down payment", "vacation"
-- **Net worth**: `balance >= 0` = asset, `balance < 0` = liability. Credit cards are a special liability type.
-- **Account types**: `on_budget` = liquid/operational; tracking = investments/property
-- **Transaction filtering**: always exclude `deleted` and check `transfer_account_id is None` to skip internal transfers
-- **Negative budgeted values** on categories are credit card payment tracking — skip in spending analyses
+- **Config-driven rules**: Spending caps, savings keywords (`interpretation.savings_keywords`), and skip groups (`interpretation.skip_category_groups`) are all in `config.json`. Read it for current values.
+- **Credit cards**: Never scold about balances — paid in full monthly. Not debt.
+- **Savings categories**: Budgeted = saving (good). Activity = intended withdrawal (neutral).
+- **Transaction filtering**: Always exclude `deleted` and `transfer_account_id is not None` (internal transfers).
+- **Negative budgeted values** on categories = credit card payment tracking — skip in spending analyses.
 
 ## Dashboard
 
@@ -147,4 +145,4 @@ Reports are overwritten when regenerated for the same period. Read previous repo
 - `cache/` — net worth snapshots (`net_worth_snapshots.json`) and API response cache (`api/`)
 - `reports/` — generated markdown and HTML reports
 
-See `budget-rules.md` in this skill directory for grading algorithm details and tone guidance.
+See `tone-guide.md` in this skill directory for personality, grade commentary, and interpretation intent.

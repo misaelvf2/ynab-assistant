@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import date
 from ynab_assistant import (
     YNABClient, format_currency, get_month_string,
-    milliunits_to_dollars, save_report
+    milliunits_to_dollars, save_report, load_config
 )
 
 
@@ -95,7 +95,11 @@ def get_spending_summary(year: int = None, month: int = None) -> str:
             continue
         groups[cat["category_group_name"]].append(cat)
 
-    skip_groups = ["Internal Master Category", "Credit Card Payments", "Hidden Categories"]
+    config = load_config()
+    skip_groups = config.get("interpretation", {}).get(
+        "skip_category_groups",
+        ["Internal Master Category", "Credit Card Payments", "Hidden Categories"]
+    )
 
     # Collect all categories for summary analysis
     all_cats = []

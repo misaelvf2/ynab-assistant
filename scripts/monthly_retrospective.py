@@ -8,7 +8,7 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from ynab_assistant import (
     YNABClient, format_currency, get_month_string,
-    milliunits_to_dollars, save_report
+    milliunits_to_dollars, save_report, load_config
 )
 
 
@@ -29,9 +29,13 @@ def calculate_income(transactions):
     return total
 
 
-def build_spending_overview(categories):
+def build_spending_overview(categories, config=None):
     """Group spending by category group, skip internal/credit card/hidden groups."""
-    skip_groups = {"Internal Master Category", "Credit Card Payments", "Hidden Categories"}
+    config = config or load_config()
+    skip_groups = set(config.get("interpretation", {}).get(
+        "skip_category_groups",
+        ["Internal Master Category", "Credit Card Payments", "Hidden Categories"]
+    ))
 
     groups = defaultdict(lambda: {"budgeted": 0, "spent": 0, "categories": []})
     for cat in categories:
@@ -75,9 +79,13 @@ def build_eating_out_section(client, month_str, config):
     }
 
 
-def build_savings_section(categories):
+def build_savings_section(categories, config=None):
     """Filter for savings/fund categories. Budgeted = saved, activity = withdrawn."""
-    savings_keywords = {"fund", "savings", "emergency", "down payment", "vacation"}
+    config = config or load_config()
+    savings_keywords = set(config.get("interpretation", {}).get(
+        "savings_keywords",
+        ["fund", "savings", "emergency", "down payment", "vacation"]
+    ))
     savings = []
 
     for cat in categories:

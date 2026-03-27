@@ -14,6 +14,10 @@
     "flag_large_transactions_above": 500,
     "require_memo_for_transactions_above": 100
   },
+  "interpretation": {
+    "savings_keywords": ["fund", "savings", "emergency", "down payment", "vacation"],
+    "skip_category_groups": ["Internal Master Category", "Credit Card Payments", "Hidden Categories"]
+  },
   "notes": {
     "credit_cards": "Balances are paid in full every month. No interest carried. These are rolling monthly expenses, not problematic debt.",
     "savings_fund_categories": "For fund categories (Down Payment Fund, Vacation Fund, Emergency Fund, etc.), 'budgeted' means money earmarked/set aside—this is saving. 'Activity/spent' means money drawn from the fund for its intended use. Budgeted is good; activity is spending down savings."
