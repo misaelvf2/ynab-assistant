@@ -123,8 +123,7 @@ def register(app: FastAPI):
   "grading": {
     "dimensions": { "<name>": {"max_points": <n>, "weight": "<description>"} },
     "letter_grades": { "A": 90, "B": 80, "C": 70, "D": 60 }
-  },
-  "notes": { "<topic>": "<interpretation note for the agent>" }
+  }
 }
 ```
 
@@ -141,6 +140,7 @@ Thresholds come from two config files — read them for current values, don't ha
 1. **Eating out hard cap**: `user_config.json` → `spending_caps.eating_out.monthly_limit` — track closely.
 2. **Large transaction flag**: `config.json` → `review_settings.flag_large_transactions_above` — flag for review.
 3. **Memo requirement**: `config.json` → `review_settings.require_memo_for_transactions_above` — transactions above this need memos.
+4. **Eurest categorization**: Eurest is the office cafeteria. Transactions ~$10+ are lunch → **Eating Out**. Low single-digit amounts ($2–5) are snacks → **Fun Money**.
 
 See `tone-guide.md` for personality, interpretation rules (credit cards, savings), and commentary guidance.
 
