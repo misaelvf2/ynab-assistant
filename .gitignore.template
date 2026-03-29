@@ -17,9 +17,11 @@ __pycache__/
 reports/*.md
 reports/*.html
 
-# User-specific files (generated during onboarding)
-user_config.json
-user_scripts/
-.claude/skills/personal-budget/tone-guide.md
-dashboard/plugins/*.py
+# User-specific (generated during onboarding)
+config.json
+user_scripts/*
+!user_scripts/.gitkeep
+dashboard/plugins/*
 !dashboard/plugins/__init__.py
+!dashboard/plugins/.gitkeep
+.claude/skills/personal-budget/tone-guide.md

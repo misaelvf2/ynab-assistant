@@ -10,7 +10,7 @@ from pathlib import Path
 from dateutil.relativedelta import relativedelta
 from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars, save_report,
-    load_user_config, REPORTS_DIR
+    load_config, REPORTS_DIR
 )
 
 
@@ -276,9 +276,9 @@ def generate_discussion(monthly_data: list, months_back: int) -> str:
         f"and ${milliunits_to_dollars(projected_24mo):,.0f} in 24 months. "
     )
 
-    # Milestone projections (from user_config.json if available)
-    user_config = load_user_config()
-    milestones = user_config.get("net_worth", {}).get("milestones", [])
+    # Milestone projections (from config.json if available)
+    config = load_config()
+    milestones = config.get("net_worth", {}).get("milestones", [])
 
     current_nw_dollars = milliunits_to_dollars(last["net_worth"])
     avg_monthly_dollars = milliunits_to_dollars(avg_monthly)

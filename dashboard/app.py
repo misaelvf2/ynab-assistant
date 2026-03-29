@@ -7,17 +7,13 @@ dashboard/plugins/ — each plugin is a Python module with a register(app)
 function that adds its own routes.
 """
 import importlib
-import sys
 from pathlib import Path
-
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from data_service import (
+from .data_service import (
     get_dashboard_summary,
     get_net_worth_data,
     get_net_worth_history,
