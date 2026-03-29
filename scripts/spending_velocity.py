@@ -5,7 +5,7 @@ Spending Velocity - Track spending pace and project month-end totals
 import argparse
 from datetime import date, timedelta
 from calendar import monthrange
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars,
     get_month_start_date, save_report
 )
@@ -162,7 +162,7 @@ def analyze_velocity(threshold_pct: float = 10.0, alert_only: bool = False) -> s
         )
 
     if not overspent and not warnings:
-        exec_lines.append("All categories on track or under pace. Disciplined month so far.")
+        exec_lines.append("All categories on track or under pace.")
 
     lines = [
         f"# Spending Velocity Report - {today}",
@@ -262,30 +262,6 @@ def analyze_velocity(threshold_pct: float = 10.0, alert_only: bool = False) -> s
             for cat in fully_spent:
                 lines.append(f"| {cat['name']} | {format_currency(cat['budgeted'])} |")
             lines.append("")
-
-    # Key categories quick check (eating out specifically)
-    eating_out = next((c for c in categories if c['name'].lower() == 'eating out'), None)
-    if eating_out:
-        lines.extend([
-            f"## Eating Out Watch",
-            f"",
-        ])
-        if eating_out['status'] == 'overspent':
-            lines.append(f"Already over budget. Stop eating out this month.")
-        elif eating_out['status'] == 'warning':
-            lines.append(
-                f"Spent {format_currency(eating_out['activity'])} of {format_currency(eating_out['budgeted'])} "
-                f"({eating_out['spent_pct']:.0f}%). "
-                f"At this pace, you'll hit {format_currency(int(eating_out['projected']))} by month end. "
-                f"Daily allowance: {format_currency(int(eating_out['daily_allowance']))}."
-            )
-        else:
-            lines.append(
-                f"Spent {format_currency(eating_out['activity'])} of {format_currency(eating_out['budgeted'])} "
-                f"({eating_out['spent_pct']:.0f}%). On pace. "
-                f"Daily allowance: {format_currency(int(eating_out['daily_allowance']))}."
-            )
-        lines.append("")
 
     lines.extend([
         f"---",

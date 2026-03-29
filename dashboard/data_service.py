@@ -5,9 +5,8 @@ Returns structured dicts instead of markdown strings
 """
 from datetime import date, timedelta
 from calendar import monthrange
-from collections import defaultdict
 from dateutil.relativedelta import relativedelta
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, load_config, milliunits_to_dollars,
     get_month_start_date
 )
@@ -157,72 +156,6 @@ def get_net_worth_history(months: int = 12) -> dict:
     }
 
 
-def get_eating_out_data(year: int = None, month: int = None) -> dict:
-    """Get eating out tracker data."""
-    client = YNABClient()
-    config = load_config()
-    today = date.today()
-
-    if year is None:
-        year = today.year
-    if month is None:
-        month = today.month
-
-    eating_out_config = config.get("spending_caps", {}).get("eating_out", {})
-    hard_cap = eating_out_config.get("monthly_limit", 600)
-    category_id = eating_out_config.get("category_id")
-
-    month_str = f"{year}-{month:02d}-01"
-    category_data = client.get_category_by_month(category_id, month_str)
-
-    activity = abs(category_data.get("activity", 0))
-    budgeted = category_data.get("budgeted", 0)
-
-    spent = milliunits_to_dollars(activity)
-    remaining = hard_cap - spent
-
-    # Pace calculations
-    days_in_month = monthrange(year, month)[1]
-    is_current_month = (year == today.year and month == today.month)
-
-    if is_current_month:
-        days_elapsed = today.day
-        days_remaining = days_in_month - days_elapsed
-    else:
-        days_elapsed = days_in_month
-        days_remaining = 0
-
-    daily_avg = spent / days_elapsed if days_elapsed > 0 else 0
-    projected = daily_avg * days_in_month
-    daily_allowance = remaining / days_remaining if days_remaining > 0 else 0
-
-    # Status
-    if spent > hard_cap:
-        status = "over"
-    elif projected > hard_cap:
-        status = "warning"
-    elif spent > hard_cap * 0.8:
-        status = "caution"
-    else:
-        status = "on_track"
-
-    return {
-        "spent": spent,
-        "hard_cap": hard_cap,
-        "budgeted": milliunits_to_dollars(budgeted),
-        "remaining": remaining,
-        "days_elapsed": days_elapsed,
-        "days_remaining": days_remaining,
-        "days_in_month": days_in_month,
-        "daily_avg": daily_avg,
-        "projected": projected,
-        "daily_allowance": daily_allowance,
-        "status": status,
-        "percent_used": (spent / hard_cap * 100) if hard_cap > 0 else 0,
-        "percent_month": (days_elapsed / days_in_month * 100)
-    }
-
-
 def get_spending_velocity_data(threshold_pct: float = 10.0) -> dict:
     """Get spending velocity for all categories."""
     client = YNABClient()
@@ -309,8 +242,12 @@ def get_spending_velocity_data(threshold_pct: float = 10.0) -> dict:
 def get_transaction_issues(days: int = 30, memo_threshold: float = 100) -> dict:
     """Get transactions needing attention."""
     client = YNABClient()
+    config = load_config()
     today = date.today()
     since = today - timedelta(days=days)
+
+    system_cats = config.get("interpretation", {}).get("system_categories", {})
+    uncategorized_name = system_cats.get("uncategorized", "Uncategorized")
 
     transactions = client.get_transactions(since_date=since.strftime("%Y-%m-%d"))
 
@@ -339,7 +276,7 @@ def get_transaction_issues(days: int = 30, memo_threshold: float = 100) -> dict:
             "memo": txn["memo"]
         }
 
-        if txn["category_name"] == "Uncategorized" or txn["category_id"] is None:
+        if txn["category_name"] == uncategorized_name or txn["category_id"] is None:
             if amount < 0:
                 uncategorized.append(txn_data)
 
@@ -364,7 +301,6 @@ def get_dashboard_summary() -> dict:
     from datetime import datetime
 
     net_worth = get_net_worth_data()
-    eating_out = get_eating_out_data()
     velocity = get_spending_velocity_data()
     issues = get_transaction_issues(days=14)
     history = get_net_worth_history(months=12)
@@ -388,7 +324,6 @@ def get_dashboard_summary() -> dict:
             "mom_change": mom_change,
             "mom_pct": mom_pct
         },
-        "eating_out": eating_out,
         "velocity": {
             "day": velocity["day"],
             "days_in_month": velocity["days_in_month"],

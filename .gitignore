@@ -15,3 +15,12 @@ __pycache__/
 # Reports (generated, not tracked)
 reports/*.md
 reports/*.html
+
+# User-specific (generated during onboarding)
+config.json
+user_scripts/*
+!user_scripts/.gitkeep
+dashboard/plugins/*
+!dashboard/plugins/__init__.py
+!dashboard/plugins/.gitkeep
+.claude/skills/personal-budget/tone-guide.md

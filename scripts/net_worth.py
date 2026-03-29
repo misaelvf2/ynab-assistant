@@ -6,9 +6,9 @@ import argparse
 import json
 from datetime import date
 from pathlib import Path
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars,
-    CACHE_DIR, save_report
+    load_config, CACHE_DIR, save_report
 )
 
 
@@ -30,63 +30,42 @@ def save_snapshot(snapshot_date: str, data: dict):
         json.dump(snapshots, f, indent=2)
 
 
-def generate_executive_summary(net_worth: int, total_assets: int, total_liabilities: int,
-                                total_on_budget: int, total_tracking: int,
-                                total_credit: int, total_loans: int,
-                                compare_data: dict = None) -> str:
-    """Generate plain-English executive summary."""
+def generate_summary_block(net_worth: int, total_assets: int, total_liabilities: int,
+                           total_on_budget: int, total_tracking: int,
+                           total_credit: int, total_loans: int,
+                           compare_data: dict = None) -> str:
+    """Generate structured summary data for the report."""
     lines = []
 
     nw = milliunits_to_dollars(net_worth)
-    assets = milliunits_to_dollars(total_assets)
-    liabilities = milliunits_to_dollars(total_liabilities)
     liquid = milliunits_to_dollars(total_on_budget)
     investments = milliunits_to_dollars(total_tracking)
     cc_debt = milliunits_to_dollars(total_credit)
     loan_debt = milliunits_to_dollars(total_loans)
+    liabilities = milliunits_to_dollars(total_liabilities)
+    assets = milliunits_to_dollars(total_assets)
+    debt_to_asset = (liabilities / assets) * 100 if assets > 0 else 0
 
-    # Overall position
-    lines.append(f"Net worth stands at ${nw:,.0f}.")
+    lines.append(f"- **Net Worth:** ${nw:,.0f}")
+    lines.append(f"- **Assets:** ${liquid:,.0f} liquid, ${investments:,.0f} investments/property")
+    lines.append(f"- **Liabilities:** ${cc_debt:,.0f} credit cards, ${loan_debt:,.0f} loans")
+    lines.append(f"- **Debt-to-asset ratio:** {debt_to_asset:.0f}%")
 
-    # Asset breakdown
-    if investments > liquid:
-        inv_pct = (investments / assets) * 100 if assets > 0 else 0
-        lines.append(
-            f"The bulk of your assets (${investments:,.0f}, {inv_pct:.0f}%) sit in investments and property, "
-            f"with ${liquid:,.0f} in liquid accounts."
-        )
-    else:
-        lines.append(f"You have ${liquid:,.0f} liquid and ${investments:,.0f} in investments/property.")
+    config = load_config()
+    debt_threshold = config.get("net_worth", {}).get("debt_concern_threshold", 5000)
+    if cc_debt > debt_threshold:
+        lines.append(f"- **Credit card debt exceeds threshold:** ${cc_debt:,.0f} vs ${debt_threshold:,.0f} limit")
 
-    # Debt assessment
-    if liabilities > 0:
-        debt_to_asset = (liabilities / assets) * 100 if assets > 0 else 0
-        if cc_debt > 0 and loan_debt > 0:
-            lines.append(
-                f"Total debt is ${liabilities:,.0f} ({debt_to_asset:.0f}% of assets): "
-                f"${cc_debt:,.0f} on credit cards and ${loan_debt:,.0f} in loans."
-            )
-        elif cc_debt > 0:
-            lines.append(f"You're carrying ${cc_debt:,.0f} in credit card debt.")
-        elif loan_debt > 0:
-            lines.append(f"Loan debt totals ${loan_debt:,.0f}.")
-
-        if cc_debt > 5000:
-            lines.append("That credit card balance needs attention—interest is eating your returns.")
-    else:
-        lines.append("No debt. Impressive, if true.")
-
-    # Comparison if available
     if compare_data:
         prev_nw = compare_data["net_worth"]
         change = net_worth - prev_nw
         pct = (change / prev_nw * 100) if prev_nw != 0 else 0
-        direction = "up" if change >= 0 else "down"
+        sign = "+" if change >= 0 else ""
         lines.append(
-            f"Compared to the snapshot, you're {direction} ${abs(milliunits_to_dollars(change)):,.0f} ({pct:+.1f}%)."
+            f"- **Comparison:** {sign}${milliunits_to_dollars(change):,.0f} ({sign}{pct:.1f}%) vs snapshot"
         )
 
-    return " ".join(lines)
+    return "\n".join(lines)
 
 
 def calculate_net_worth(save: bool = False, compare: str = None) -> str:
@@ -135,7 +114,7 @@ def calculate_net_worth(save: bool = False, compare: str = None) -> str:
         if compare in snapshots:
             compare_data = snapshots[compare]
 
-    exec_summary = generate_executive_summary(
+    summary_block = generate_summary_block(
         net_worth, total_assets, total_liabilities,
         total_on_budget, total_tracking, total_credit, total_loans,
         compare_data
@@ -145,9 +124,9 @@ def calculate_net_worth(save: bool = False, compare: str = None) -> str:
     lines = [
         f"# Net Worth Report - {today}",
         f"",
-        f"## Executive Summary",
+        f"## Summary",
         f"",
-        f"{exec_summary}",
+        f"{summary_block}",
         f"",
         f"## Assets",
         f"",

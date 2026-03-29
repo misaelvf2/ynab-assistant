@@ -5,28 +5,34 @@ Monthly Spending Summary - Shows spending by category vs budget
 import argparse
 from collections import defaultdict
 from datetime import date
-from ynab_client import (
+from ynab_assistant import (
     YNABClient, format_currency, get_month_string,
-    milliunits_to_dollars, save_report
+    milliunits_to_dollars, save_report, load_config
 )
 
 
-def generate_executive_summary(categories_data: list, total_spent: int,
-                                total_budgeted: int) -> str:
-    """Generate plain-English executive summary."""
+def generate_summary_block(categories_data: list, total_spent: int,
+                           total_budgeted: int) -> str:
+    """Generate structured summary data for the report."""
     lines = []
 
     spent_dollars = milliunits_to_dollars(total_spent)
     budgeted_dollars = milliunits_to_dollars(total_budgeted)
+    pct_used = (total_spent / total_budgeted) * 100 if total_budgeted > 0 else 0
 
-    if total_budgeted > 0:
-        pct_used = (total_spent / total_budgeted) * 100
+    if pct_used > 100:
+        status = "OVER"
+    elif pct_used > 85:
+        status = "TIGHT"
     else:
-        pct_used = 0
+        status = "UNDER"
 
-    # Find problem areas (over budget or close)
+    lines.append(f"- **Total Spent:** ${spent_dollars:,.0f} of ${budgeted_dollars:,.0f} budgeted ({pct_used:.0f}%)")
+    lines.append(f"- **Status:** {status}")
+
+    # Classify categories
     over_budget = []
-    close_to_limit = []
+    near_limit = []
     well_under = []
 
     for cat in categories_data:
@@ -36,42 +42,23 @@ def generate_executive_summary(categories_data: list, total_spent: int,
         pct = (spent / cat["budgeted"]) * 100 if cat["budgeted"] > 0 else 0
 
         if spent > cat["budgeted"]:
-            over_budget.append((cat["name"], spent, cat["budgeted"]))
+            over_amt = spent - cat["budgeted"]
+            over_budget.append(f"{cat['name']} (${milliunits_to_dollars(over_amt):,.0f} over)")
         elif pct > 80:
-            close_to_limit.append((cat["name"], pct))
-        elif pct < 30 and cat["budgeted"] > 50000:  # > $50 budgeted
-            well_under.append((cat["name"], pct))
+            near_limit.append(f"{cat['name']} ({pct:.0f}%)")
+        elif pct < 30 and cat["budgeted"] > 50000:
+            well_under.append(f"{cat['name']} ({pct:.0f}%)")
 
-    # Overall assessment
-    if pct_used > 100:
-        lines.append(
-            f"You've spent ${spent_dollars:,.0f} against a ${budgeted_dollars:,.0f} budget—"
-            f"that's {pct_used:.0f}% of your allocation, meaning you're over budget overall."
-        )
-    elif pct_used > 85:
-        lines.append(
-            f"You've spent ${spent_dollars:,.0f} of your ${budgeted_dollars:,.0f} budget ({pct_used:.0f}%). "
-            f"Getting tight."
-        )
-    else:
-        lines.append(
-            f"Total spending sits at ${spent_dollars:,.0f} against ${budgeted_dollars:,.0f} budgeted ({pct_used:.0f}%)."
-        )
-
-    # Call out problem categories
     if over_budget:
-        cats = ", ".join([f"{name} (${milliunits_to_dollars(spent):,.0f}/${milliunits_to_dollars(bud):,.0f})"
-                         for name, spent, bud in over_budget[:3]])
-        lines.append(f"Over budget: {cats}.")
+        lines.append(f"- **Over budget:** {', '.join(over_budget[:5])}")
+    if near_limit:
+        lines.append(f"- **Near limit (>80%):** {', '.join(near_limit[:5])}")
+    if well_under:
+        lines.append(f"- **Well under (<30%):** {', '.join(well_under[:5])}")
+    if not over_budget and not near_limit:
+        lines.append("- **Flags:** None")
 
-    if close_to_limit and not over_budget:
-        cats = ", ".join([f"{name} ({pct:.0f}%)" for name, pct in close_to_limit[:3]])
-        lines.append(f"Approaching limits: {cats}.")
-
-    if not over_budget and not close_to_limit:
-        lines.append("No categories are over budget or critically close. Adequate discipline so far.")
-
-    return " ".join(lines)
+    return "\n".join(lines)
 
 
 def get_spending_summary(year: int = None, month: int = None) -> str:
@@ -95,7 +82,11 @@ def get_spending_summary(year: int = None, month: int = None) -> str:
             continue
         groups[cat["category_group_name"]].append(cat)
 
-    skip_groups = ["Internal Master Category", "Credit Card Payments", "Hidden Categories"]
+    config = load_config()
+    skip_groups = config.get("interpretation", {}).get(
+        "skip_category_groups",
+        ["Internal Master Category", "Credit Card Payments", "Hidden Categories"]
+    )
 
     # Collect all categories for summary analysis
     all_cats = []
@@ -112,7 +103,7 @@ def get_spending_summary(year: int = None, month: int = None) -> str:
             total_budgeted += cat["budgeted"]
             total_spent += -cat["activity"]
 
-    exec_summary = generate_executive_summary(all_cats, total_spent, total_budgeted)
+    summary_block = generate_summary_block(all_cats, total_spent, total_budgeted)
 
     # Build markdown report
     lines = [
@@ -120,9 +111,9 @@ def get_spending_summary(year: int = None, month: int = None) -> str:
         f"",
         f"Generated: {today}",
         f"",
-        f"## Executive Summary",
+        f"## Summary",
         f"",
-        f"{exec_summary}",
+        f"{summary_block}",
         f"",
     ]
 
