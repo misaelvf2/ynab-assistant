@@ -141,6 +141,7 @@ Thresholds come from two config files — read them for current values, don't ha
 2. **Large transaction flag**: `config.json` → `review_settings.flag_large_transactions_above` — flag for review.
 3. **Memo requirement**: `config.json` → `review_settings.require_memo_for_transactions_above` — transactions above this need memos.
 4. **Eurest categorization**: Eurest is the office cafeteria. Transactions ~$10+ are lunch → **Eating Out**. Low single-digit amounts ($2–5) are snacks → **Fun Money**.
+5. **AI-Approved flag**: Agent-approved transactions are flagged orange. The user has renamed the orange flag to "AI-Approved" in YNAB to distinguish agent approvals from manual ones.
 
 See `tone-guide.md` for personality, interpretation rules (credit cards, savings), and commentary guidance.
 

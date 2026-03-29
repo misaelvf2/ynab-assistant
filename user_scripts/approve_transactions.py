@@ -60,10 +60,38 @@ def analyze_consistency(txn: dict, history: list) -> dict:
     return result
 
 
-def approve_transaction(client: YNABClient, txn_id: str) -> bool:
-    """Approve a transaction via YNAB API."""
+def find_prior_match(txn: dict, history: list) -> dict | None:
+    """Find the best matching prior transaction by amount similarity.
+
+    Used to associate a new transaction with a recurring one from a prior
+    month so we can carry forward its memo as context.
+    """
+    if not history:
+        return None
+    txn_amt = abs(txn['amount'])
+    # Filter to transactions with memos
+    with_memo = [h for h in history if h.get('memo')]
+    if not with_memo:
+        return None
+    # Best match by amount closeness
+    return min(with_memo, key=lambda h: abs(abs(h['amount']) - txn_amt))
+
+
+def build_approval_memo(txn: dict, history: list, reason: str = "auto-approved") -> str:
+    """Build a short justification memo, incorporating prior-month memo if available."""
+    prior = find_prior_match(txn, history)
+    if prior and prior.get('memo'):
+        return f"{prior['memo']}; {reason}"
+    return reason
+
+
+def approve_transaction(client: YNABClient, txn_id: str, memo: str | None = None) -> bool:
+    """Approve a transaction, flag it orange (AI-Approved), and set memo."""
     try:
-        client.update_transaction(txn_id, approved=True)
+        kwargs = dict(approved=True, flag_color="orange")
+        if memo:
+            kwargs['memo'] = memo
+        client.update_transaction(txn_id, **kwargs)
         return True
     except Exception:
         return False
@@ -164,15 +192,16 @@ def review_and_approve(days: int = 30, auto_approve: bool = False, dry_run: bool
             else:
                 hist_summary = "None"
 
+            memo = build_approval_memo(txn, history)
             action = ""
             if auto_approve and not dry_run:
-                if approve_transaction(client, txn['id']):
-                    action = "Approved"
+                if approve_transaction(client, txn['id'], memo=memo):
+                    action = f"Approved ({memo})"
                     approved_count += 1
                 else:
                     action = "Failed"
             elif auto_approve and dry_run:
-                action = "Would approve"
+                action = f"Would approve ({memo})"
                 approved_count += 1
             else:
                 action = "Consistent"
