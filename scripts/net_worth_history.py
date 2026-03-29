@@ -262,6 +262,16 @@ def generate_discussion(monthly_data: list, months_back: int) -> str:
 
     lines.append("")
 
+    # Big swings deserve explanation
+    best_month, best_change = sorted_changes[0]
+    if best_change > 20000000:  # > $20k
+        lines.append(
+            f"The {best_month} spike of +${milliunits_to_dollars(best_change):,.0f} stands out. "
+            f"This was likely a major event: property equity recorded, large bonus, or exceptional market month. "
+            f"Worth noting because it's not replicable every month."
+        )
+        lines.append("")
+
     # Projected future
     lines.append("### Forward Look")
     lines.append("")
@@ -276,21 +286,24 @@ def generate_discussion(monthly_data: list, months_back: int) -> str:
         f"and ${milliunits_to_dollars(projected_24mo):,.0f} in 24 months. "
     )
 
-    # Milestone projections (from config.json if available)
+    # Milestone projections (from config.json, with sensible defaults)
     config = load_config()
     milestones = config.get("net_worth", {}).get("milestones", [])
+    if not milestones:
+        milestones = [350000, 400000, 500000, 750000, 1000000]
 
     current_nw_dollars = milliunits_to_dollars(last["net_worth"])
     avg_monthly_dollars = milliunits_to_dollars(avg_monthly)
 
-    if milestones and avg_monthly_dollars > 0:
+    if avg_monthly_dollars > 0:
         for milestone in milestones:
             if milestone > current_nw_dollars:
                 months_to_milestone = (milestone - current_nw_dollars) / avg_monthly_dollars
-                years = months_to_milestone / 12
-                lines.append(
-                    f"At this pace, you'd hit ${milestone/1000:.0f}k in roughly {years:.1f} years."
-                )
+                if months_to_milestone <= 60:  # Within 5 years
+                    years = months_to_milestone / 12
+                    lines.append(
+                        f"At this pace, you'd hit ${milestone/1000:.0f}k in roughly {years:.1f} years."
+                    )
                 break
 
     lines.append("")

@@ -36,13 +36,24 @@ def load_token() -> str:
     return token
 
 
-def load_config() -> dict:
-    """Load config.json"""
-    if not CONFIG_FILE.exists():
-        raise FileNotFoundError(f"No config.json found at {CONFIG_FILE}")
+TEMPLATE_FILE = PROJECT_ROOT / "config.template.json"
 
-    with open(CONFIG_FILE) as f:
-        return json.load(f)
+
+def load_config() -> dict:
+    """Load config.json, falling back to config.template.json (read-only)."""
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE) as f:
+            return json.load(f)
+
+    if TEMPLATE_FILE.exists():
+        with open(TEMPLATE_FILE) as f:
+            return json.load(f)
+
+    raise FileNotFoundError(
+        f"No config.json found at {CONFIG_FILE}. "
+        f"Copy config.template.json to config.json and fill in your budget details, "
+        f"or run the onboarding flow."
+    )
 
 
 def milliunits_to_dollars(milliunits: int) -> float:

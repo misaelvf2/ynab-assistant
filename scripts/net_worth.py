@@ -8,7 +8,7 @@ from datetime import date
 from pathlib import Path
 from ynab_assistant import (
     YNABClient, format_currency, milliunits_to_dollars,
-    CACHE_DIR, save_report
+    load_config, CACHE_DIR, save_report
 )
 
 
@@ -71,6 +71,10 @@ def generate_executive_summary(net_worth: int, total_assets: int, total_liabilit
         elif loan_debt > 0:
             lines.append(f"Loan debt totals ${loan_debt:,.0f}.")
 
+        config = load_config()
+        debt_threshold = config.get("net_worth", {}).get("debt_concern_threshold", 5000)
+        if cc_debt > debt_threshold:
+            lines.append(f"That credit card balance exceeds ${debt_threshold:,.0f}—worth attention.")
     else:
         lines.append("No debt. Impressive, if true.")
 
