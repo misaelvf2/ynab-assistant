@@ -50,47 +50,22 @@ def reconstruct_account_history(account: dict, transactions: list) -> dict:
     return balances
 
 
-def generate_executive_summary(monthly_data: list, total_change: int,
-                                pct_change: float, avg_monthly_change: int,
-                                months_back: int) -> str:
-    """Generate plain-English executive summary."""
+def generate_summary_block(monthly_data: list, total_change: int,
+                           pct_change: float, avg_monthly_change: int,
+                           months_back: int) -> str:
+    """Generate structured summary data for the report."""
     lines = []
 
     first_nw = milliunits_to_dollars(monthly_data[0]["net_worth"])
     last_nw = milliunits_to_dollars(monthly_data[-1]["net_worth"])
     change = milliunits_to_dollars(total_change)
     avg = milliunits_to_dollars(avg_monthly_change)
+    sign = "+" if change >= 0 else ""
 
-    if pct_change > 50:
-        lines.append(
-            f"Over the past {months_back} months, your net worth has grown from ${first_nw:,.0f} to "
-            f"${last_nw:,.0f}—a gain of ${change:,.0f} ({pct_change:+.1f}%). That's serious progress."
-        )
-    elif pct_change > 20:
-        lines.append(
-            f"Net worth grew from ${first_nw:,.0f} to ${last_nw:,.0f} over {months_back} months, "
-            f"up ${change:,.0f} ({pct_change:+.1f}%). Solid trajectory."
-        )
-    elif pct_change > 0:
-        lines.append(
-            f"You've added ${change:,.0f} to your net worth over {months_back} months ({pct_change:+.1f}%). "
-            f"Positive, but not spectacular."
-        )
-    elif pct_change > -10:
-        lines.append(
-            f"Net worth is roughly flat over {months_back} months—${change:,.0f} change ({pct_change:+.1f}%). "
-            f"You're treading water."
-        )
-    else:
-        lines.append(
-            f"Net worth declined from ${first_nw:,.0f} to ${last_nw:,.0f}, "
-            f"down ${abs(change):,.0f} ({pct_change:.1f}%). Time to diagnose what went wrong."
-        )
-
-    if avg > 0:
-        lines.append(f"Average monthly gain: ${avg:,.0f}.")
-    else:
-        lines.append(f"Average monthly change: ${avg:,.0f}.")
+    lines.append(f"- **Period:** {monthly_data[0]['month']} to {monthly_data[-1]['month']} ({months_back} months)")
+    lines.append(f"- **Start:** ${first_nw:,.0f} → **End:** ${last_nw:,.0f}")
+    lines.append(f"- **Total change:** {sign}${change:,.0f} ({sign}{pct_change:.1f}%)")
+    lines.append(f"- **Avg monthly change:** {sign}${avg:,.0f}")
 
     changes = []
     for i in range(1, len(monthly_data)):
@@ -100,37 +75,26 @@ def generate_executive_summary(monthly_data: list, total_change: int,
     if changes:
         best = max(changes, key=lambda x: x[1])
         worst = min(changes, key=lambda x: x[1])
-
-        best_val = milliunits_to_dollars(best[1])
-        worst_val = milliunits_to_dollars(worst[1])
-
-        if best[1] > 0:
-            lines.append(f"Best month: {best[0]} (+${best_val:,.0f}).")
-        if worst[1] < 0:
-            lines.append(f"Worst month: {worst[0]} (${worst_val:,.0f}).")
+        lines.append(f"- **Best month:** {best[0]} (+${milliunits_to_dollars(best[1]):,.0f})")
+        lines.append(f"- **Worst month:** {worst[0]} (${milliunits_to_dollars(worst[1]):,.0f})")
 
     first_liab = milliunits_to_dollars(monthly_data[0]["liabilities"])
     last_liab = milliunits_to_dollars(monthly_data[-1]["liabilities"])
     liab_change = last_liab - first_liab
+    liab_sign = "+" if liab_change >= 0 else ""
+    lines.append(f"- **Debt change:** {liab_sign}${liab_change:,.0f}")
 
-    if liab_change < 0:
-        lines.append(f"Debt reduced by ${abs(liab_change):,.0f}.")
-    elif liab_change > 0:
-        lines.append(f"Debt increased by ${liab_change:,.0f}.")
-
-    return " ".join(lines)
+    return "\n".join(lines)
 
 
-def generate_discussion(monthly_data: list, months_back: int) -> str:
-    """Generate in-depth discussion of the numbers."""
+def generate_analysis(monthly_data: list, months_back: int) -> str:
+    """Generate structured analysis data for the report."""
+    import statistics
     lines = []
 
-    # Calculate various metrics
     first = monthly_data[0]
     last = monthly_data[-1]
 
-    first_nw = milliunits_to_dollars(first["net_worth"])
-    last_nw = milliunits_to_dollars(last["net_worth"])
     first_assets = milliunits_to_dollars(first["assets"])
     last_assets = milliunits_to_dollars(last["assets"])
     first_liab = milliunits_to_dollars(first["liabilities"])
@@ -144,147 +108,113 @@ def generate_discussion(monthly_data: list, months_back: int) -> str:
 
     positive_months = [c for c in changes if c[1] > 0]
     negative_months = [c for c in changes if c[1] < 0]
-    flat_months = [c for c in changes if c[1] == 0]
 
     avg_gain = sum(c[1] for c in positive_months) / len(positive_months) if positive_months else 0
     avg_loss = sum(c[1] for c in negative_months) / len(negative_months) if negative_months else 0
 
-    # Growth rate analysis
-    lines.append("### Growth Trajectory")
-    lines.append("")
-
+    # Growth trajectory
     asset_growth = last_assets - first_assets
     asset_growth_pct = (asset_growth / first_assets * 100) if first_assets > 0 else 0
     liab_change = last_liab - first_liab
     liab_change_pct = (liab_change / first_liab * 100) if first_liab > 0 else 0
 
-    lines.append(
-        f"Assets grew from ${first_assets:,.0f} to ${last_assets:,.0f}, "
-        f"an increase of ${asset_growth:,.0f} ({asset_growth_pct:+.1f}%). "
-    )
-
-    if liab_change < 0:
-        lines.append(
-            f"Meanwhile, liabilities dropped from ${first_liab:,.0f} to ${last_liab:,.0f}, "
-            f"a reduction of ${abs(liab_change):,.0f} ({liab_change_pct:.1f}%). "
-            f"This double effect—assets up, debt down—is the ideal wealth-building pattern."
-        )
+    if asset_growth >= 0 and liab_change <= 0:
+        pattern = "ASSETS_UP_DEBT_DOWN"
+    elif asset_growth >= 0 and liab_change > 0:
+        pattern = "ASSETS_UP_DEBT_UP"
+    elif asset_growth < 0 and liab_change <= 0:
+        pattern = "ASSETS_DOWN_DEBT_DOWN"
     else:
-        lines.append(
-            f"Liabilities increased from ${first_liab:,.0f} to ${last_liab:,.0f} (+${liab_change:,.0f}). "
-            f"Net worth still grew because asset gains outpaced debt accumulation, but watch this trend."
-        )
+        pattern = "ASSETS_DOWN_DEBT_UP"
 
+    lines.append("### Growth Trajectory")
+    lines.append("")
+    lines.append(f"- Asset growth: ${first_assets:,.0f} → ${last_assets:,.0f} (+${asset_growth:,.0f}, {asset_growth_pct:+.1f}%)")
+    liab_sign = "+" if liab_change >= 0 else ""
+    lines.append(f"- Liability change: ${first_liab:,.0f} → ${last_liab:,.0f} ({liab_sign}${liab_change:,.0f}, {liab_change_pct:+.1f}%)")
+    lines.append(f"- Pattern: {pattern}")
     lines.append("")
 
-    # Consistency analysis
+    # Consistency
+    win_rate = len(positive_months) / len(changes) * 100 if changes else 0
+
     lines.append("### Consistency")
     lines.append("")
-
-    win_rate = len(positive_months) / len(changes) * 100 if changes else 0
-    lines.append(
-        f"Out of {len(changes)} months, {len(positive_months)} were positive and {len(negative_months)} were negative "
-        f"({win_rate:.0f}% win rate). "
-    )
+    lines.append(f"- Positive months: {len(positive_months)} / Negative months: {len(negative_months)} ({win_rate:.0f}% win rate)")
+    lines.append(f"- Avg gain: +${milliunits_to_dollars(avg_gain):,.0f} / Avg loss: ${milliunits_to_dollars(avg_loss):,.0f}")
 
     if avg_gain > 0 and avg_loss < 0:
         gain_loss_ratio = abs(milliunits_to_dollars(avg_gain) / milliunits_to_dollars(avg_loss))
-        lines.append(
-            f"Average winning month: +${milliunits_to_dollars(avg_gain):,.0f}. "
-            f"Average losing month: ${milliunits_to_dollars(avg_loss):,.0f}. "
-            f"Your gains are {gain_loss_ratio:.1f}x your losses on average—"
-        )
-        if gain_loss_ratio > 2:
-            lines.append("that's a healthy asymmetry.")
-        elif gain_loss_ratio > 1:
-            lines.append("acceptable, but there's room for more upside capture.")
-        else:
-            lines.append("you're losing more on bad months than you gain on good ones. Not ideal.")
-
+        lines.append(f"- Gain/loss ratio: {gain_loss_ratio:.1f}x")
     lines.append("")
 
-    # Volatility analysis
+    # Volatility
+    change_values = [c[1] for c in changes]
     lines.append("### Volatility")
     lines.append("")
-
-    change_values = [c[1] for c in changes]
-    if change_values:
-        import statistics
+    if len(change_values) >= 2:
         try:
             stdev = statistics.stdev(change_values)
             mean = statistics.mean(change_values)
             stdev_dollars = milliunits_to_dollars(stdev)
             mean_dollars = milliunits_to_dollars(mean)
 
-            lines.append(
-                f"Monthly change standard deviation: ${stdev_dollars:,.0f}. "
-                f"Mean monthly change: ${mean_dollars:,.0f}. "
-            )
-
-            # Coefficient of variation (relative volatility)
             if mean != 0:
                 cv = abs(stdev / mean)
                 if cv < 1:
-                    lines.append(
-                        f"Volatility is relatively low compared to average gains—your growth is fairly steady."
-                    )
+                    vol_class = "LOW"
                 elif cv < 2:
-                    lines.append(
-                        f"Moderate volatility. Expect some months to deviate significantly from the average."
-                    )
+                    vol_class = "MODERATE"
                 else:
-                    lines.append(
-                        f"High volatility. Your month-to-month swings are large relative to average growth."
-                    )
+                    vol_class = "HIGH"
+            else:
+                cv = 0
+                vol_class = "N/A"
+
+            lines.append(f"- Monthly stdev: ${stdev_dollars:,.0f}")
+            lines.append(f"- Mean monthly change: ${mean_dollars:,.0f}")
+            lines.append(f"- Coefficient of variation: {cv:.1f}")
+            lines.append(f"- Classification: {vol_class}")
         except statistics.StatisticsError:
-            pass
-
+            lines.append("- Insufficient data")
+    else:
+        lines.append("- Insufficient data")
     lines.append("")
 
-    # Outlier analysis
-    lines.append("### Notable Months")
-    lines.append("")
-
+    # Notable months
     sorted_changes = sorted(changes, key=lambda x: x[1], reverse=True)
     top_3 = sorted_changes[:3]
     bottom_3 = sorted_changes[-3:]
 
-    lines.append("**Best months:**")
+    lines.append("### Notable Months")
+    lines.append("")
+    lines.append("**Best:**")
     for month, change in top_3:
         lines.append(f"- {month}: +${milliunits_to_dollars(change):,.0f}")
-
     lines.append("")
-    lines.append("**Worst months:**")
+    lines.append("**Worst:**")
     for month, change in bottom_3:
         val = milliunits_to_dollars(change)
         sign = "+" if val >= 0 else ""
         lines.append(f"- {month}: {sign}${val:,.0f}")
-
     lines.append("")
 
-    # Big swings deserve explanation
+    # Flag big swings as a data point
     best_month, best_change = sorted_changes[0]
     if best_change > 20000000:  # > $20k
-        lines.append(
-            f"The {best_month} spike of +${milliunits_to_dollars(best_change):,.0f} stands out. "
-            f"This was likely a major event: property equity recorded, large bonus, or exceptional market month. "
-            f"Worth noting because it's not replicable every month."
-        )
+        lines.append(f"**Large swing:** {best_month} (+${milliunits_to_dollars(best_change):,.0f})")
         lines.append("")
 
-    # Projected future
-    lines.append("### Forward Look")
-    lines.append("")
-
+    # Forward look
     avg_monthly = sum(c[1] for c in changes) / len(changes) if changes else 0
     projected_12mo = last["net_worth"] + (avg_monthly * 12)
     projected_24mo = last["net_worth"] + (avg_monthly * 24)
 
-    lines.append(
-        f"At the current average pace of ${milliunits_to_dollars(avg_monthly):,.0f}/month, "
-        f"you'd reach ${milliunits_to_dollars(projected_12mo):,.0f} in 12 months "
-        f"and ${milliunits_to_dollars(projected_24mo):,.0f} in 24 months. "
-    )
+    lines.append("### Forward Look")
+    lines.append("")
+    lines.append(f"- Avg monthly pace: ${milliunits_to_dollars(avg_monthly):,.0f}")
+    lines.append(f"- Projected 12mo: ${milliunits_to_dollars(projected_12mo):,.0f}")
+    lines.append(f"- Projected 24mo: ${milliunits_to_dollars(projected_24mo):,.0f}")
 
     # Milestone projections (from config.json, with sensible defaults)
     config = load_config()
@@ -299,18 +229,10 @@ def generate_discussion(monthly_data: list, months_back: int) -> str:
         for milestone in milestones:
             if milestone > current_nw_dollars:
                 months_to_milestone = (milestone - current_nw_dollars) / avg_monthly_dollars
-                if months_to_milestone <= 60:  # Within 5 years
+                if months_to_milestone <= 60:
                     years = months_to_milestone / 12
-                    lines.append(
-                        f"At this pace, you'd hit ${milestone/1000:.0f}k in roughly {years:.1f} years."
-                    )
+                    lines.append(f"- Next milestone: ${milestone/1000:.0f}k in ~{years:.1f} years")
                 break
-
-    lines.append("")
-    lines.append(
-        "These projections assume consistent contributions and average market returns. "
-        "Reality will vary—but the trajectory is yours to maintain."
-    )
 
     return "\n".join(lines)
 
@@ -640,11 +562,11 @@ def calculate_net_worth_history(months_back: int = 24) -> str:
         pct_change = 0
         avg_monthly_change = 0
 
-    exec_summary = generate_executive_summary(
+    summary_block = generate_summary_block(
         monthly_data, total_change, pct_change, avg_monthly_change, months_back
     )
 
-    discussion = generate_discussion(monthly_data, months_back)
+    analysis = generate_analysis(monthly_data, months_back)
 
     lines = [
         f"# Net Worth History",
@@ -652,9 +574,9 @@ def calculate_net_worth_history(months_back: int = 24) -> str:
         f"**Period:** {start_month} to {end_month} ({months_back} months)",
         f"**Generated:** {today}",
         f"",
-        f"## Executive Summary",
+        f"## Summary",
         f"",
-        f"{exec_summary}",
+        f"{summary_block}",
         f"",
         f"## Key Metrics",
         f"",
@@ -666,9 +588,9 @@ def calculate_net_worth_history(months_back: int = 24) -> str:
         f"| Percentage Change | {'+' if pct_change >= 0 else ''}{pct_change:.1f}% |",
         f"| Avg Monthly Change | {'+' if avg_monthly_change >= 0 else ''}{format_currency(avg_monthly_change)} |",
         f"",
-        f"## Discussion",
+        f"## Analysis",
         f"",
-        f"{discussion}",
+        f"{analysis}",
         f"",
         f"## Monthly Breakdown",
         f"",

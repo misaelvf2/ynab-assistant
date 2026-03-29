@@ -175,6 +175,8 @@ See `tone-guide.md` for personality, interpretation rules, and commentary guidan
 
 Run via `uv run python scripts/<script>.py`.
 
+**Output pattern:** Scripts produce structured data (summary blocks with key metrics and status classifications) plus markdown tables. They do **not** generate interpretive commentary or personality-driven prose. When presenting results to the user, the agent reads the script output and generates commentary using `tone-guide.md` for tone and `config.json` for interpretation rules. This separation keeps scripts reusable across different users and lets the agent adapt its voice.
+
 ### spending_summary.py
 **Triggers:** monthly spending, budget status, category breakdowns
 ```

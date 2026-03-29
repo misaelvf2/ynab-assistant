@@ -19,39 +19,28 @@ def generate_executive_summary(total_txns: int, uncategorized: list,
 
     total_issues = len(uncategorized) + len(missing_memo) + len(unapproved)
 
+    lines.append(f"Reviewed {total_txns} transactions from the last {days} days.")
+
     if total_issues == 0:
-        lines.append(
-            f"Reviewed {total_txns} transactions from the last {days} days. "
-            f"Everything looks clean—no uncategorized transactions, no missing memos on large purchases, "
-            f"and nothing unapproved. Well done."
-        )
+        lines.append("No issues found.")
     else:
-        lines.append(
-            f"Reviewed {total_txns} transactions from the last {days} days and found {total_issues} issues."
-        )
+        lines.append(f"Found {total_issues} issues.")
 
         if uncategorized:
             total_uncat = sum(abs(t["amount"]) for t in uncategorized)
             lines.append(
-                f"{len(uncategorized)} transactions totaling {format_currency(int(total_uncat))} are uncategorized. "
-                f"Fix these so your reports are accurate."
+                f"{len(uncategorized)} uncategorized ({format_currency(int(total_uncat))})."
             )
 
         if missing_memo:
-            lines.append(
-                f"{len(missing_memo)} large transactions are missing memos. "
-                f"Add notes so you remember what these were for."
-            )
+            lines.append(f"{len(missing_memo)} large transactions missing memos.")
 
         if unapproved:
-            lines.append(
-                f"{len(unapproved)} transactions haven't been approved. Review and approve them."
-            )
+            lines.append(f"{len(unapproved)} unapproved.")
 
     if multi_variations:
         lines.append(
-            f"Also found {len(multi_variations)} payees with inconsistent naming from imports—"
-            f"consider cleaning up the payee rules."
+            f"{len(multi_variations)} payees with inconsistent naming from imports."
         )
 
     return " ".join(lines)
