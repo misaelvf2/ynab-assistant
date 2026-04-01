@@ -1,14 +1,19 @@
 # YNAB Financial Assistant
 
-A personal finance assistant that connects to [YNAB](https://www.ynab.com/) (You Need A Budget) to provide spending analysis, net worth tracking, and financial health diagnostics.
+A personal finance assistant powered by [Claude Code](https://docs.anthropic.com/en/docs/claude-code) that connects to [YNAB](https://www.ynab.com/) (You Need A Budget). Instead of running scripts manually, you talk to Claude — ask about your spending, net worth, or transactions, and it runs the right tools, interprets the data, and responds in your preferred tone.
 
-## Features
+The project is built on Claude Code's [agent skills](https://docs.anthropic.com/en/docs/claude-code/skills) system. Two skill specs drive all behavior:
 
-- **Spending Tracking**: Monthly spending by category with budget comparisons
-- **Eating Out Monitor**: Hard cap tracking with daily runway and projections
-- **Net Worth Analysis**: Current snapshot with asset/liability breakdown
-- **Net Worth History**: Historical reconstruction with growth trends and charts
-- **Transaction Review**: Flags uncategorized transactions, missing memos, and inconsistencies
+- `.claude/skills/ynab-api/SKILL.md` — YNAB SDK wrapper, caching, data formats
+- `.claude/skills/personal-budget/SKILL.md` — Onboarding, script generation, budget rules, request routing
+
+## How It Works
+
+1. **You talk to Claude** — "What's my net worth?", "How's my spending pace?", "Review my transactions"
+2. **Claude routes to the right script**, runs it, and reads the output
+3. **Claude interprets the results** using your personalized tone and budget rules, then responds with commentary
+
+Scripts produce structured data. Claude adds the personality and context. This separation keeps scripts reusable and lets the agent adapt its voice per user.
 
 ## Setup
 
@@ -21,67 +26,63 @@ A personal finance assistant that connects to [YNAB](https://www.ynab.com/) (You
    ```bash
    uv sync
    ```
-4. Set your YNAB Personal Access Token either:
-   - Via environment variable: `export YNAB_PAT=your_token_here`
-   - Or create a `.env` file:
-     ```
-     YNAB_PAT=your_token_here
-     ```
-5. Update `config.json` with your budget ID (run any script to see available budgets)
+4. Add your YNAB Personal Access Token to a `.env` file:
+   ```
+   YNAB_PAT=your_token_here
+   ```
+   Get a token at https://app.ynab.com/settings/developer.
 
-## Scripts
+5. **Start a Claude Code session and let it onboard you.** Claude will:
+   - Connect to your YNAB budget
+   - Show your category structure
+   - Ask about spending caps, savings goals, net worth milestones, and preferred tone
+   - Generate `config.json`, `tone-guide.md`, user-specific scripts, and dashboard plugins
 
-All scripts are in the `scripts/` directory. Run via `uv run python scripts/<script>.py`.
+See the [personal-budget skill spec](.claude/skills/personal-budget/SKILL.md) for full onboarding details.
+
+## Running Scripts Yourself
+
+Once onboarded, you're free to run any script directly from the command line.
+
+**Generic scripts** (work for any YNAB budget):
 
 | Script | Purpose | Key Flags |
 |--------|---------|-----------|
-| `eating_out_tracker.py` | Track eating out against $600/mo cap | `-t` show transactions |
-| `spending_summary.py` | Monthly spending by category | `--month YYYY-MM` |
-| `net_worth.py` | Current net worth snapshot | `--save` to snapshot, `--compare DATE` |
-| `net_worth_history.py` | Historical net worth trends | `--months N` (default 12) |
-| `review_transactions.py` | Flag transaction issues | `--days N`, `--memo-threshold N` |
-| `approve_transactions.py` | Review & approve transactions | `--approve` auto-approve, `--dry-run` preview |
-| `spending_velocity.py` | Spending pace & projections | `--threshold N`, `--alerts-only` |
+| `scripts/spending_summary.py` | Monthly spending by category | `-y YEAR`, `-m MONTH` |
+| `scripts/net_worth.py` | Current net worth snapshot | `--save`, `--compare DATE`, `--list-snapshots` |
+| `scripts/net_worth_history.py` | Historical net worth trends | `--months N` |
+| `scripts/review_transactions.py` | Flag transaction issues | `--days N`, `--memo-threshold N` |
+| `scripts/spending_velocity.py` | Spending pace & projections | `--threshold N`, `--alerts-only` |
+
+```bash
+uv run python scripts/spending_summary.py
+uv run python scripts/net_worth.py --save
+```
+
+**User-specific scripts** are generated during onboarding into `user_scripts/` — these are tailored to your budget (e.g., category trackers with your spending caps, monthly retrospectives with your grading dimensions). See the personal-budget skill spec for the patterns used to generate them.
 
 ## Web Dashboard
 
-A real-time dashboard showing all key metrics at a glance.
-
 ```bash
-# Start the dashboard
 uv run uvicorn dashboard.app:app --reload --port 8000
-
 # Open http://localhost:8000
 ```
 
-**Features:**
-- Net worth with month-over-month change
-- Eating out tracker with progress bar and daily allowance
-- Spending velocity alerts (overspent, running hot)
-- Transaction issues summary
-- 12-month net worth trend chart
-- On-demand refresh button
+The dashboard serves generic endpoints (`/api/summary`, `/api/net-worth`, etc.) plus user-specific plugin endpoints generated during onboarding. Plugins live in `dashboard/plugins/` and are auto-discovered on startup.
 
 ## Reports
 
-Scripts generate reports in both Markdown and HTML formats, saved to `reports/`:
-
-- Markdown for easy reading and diffing
-- HTML with styled tables and (for net worth history) interactive Chart.js graphs
+Scripts save Markdown and HTML reports to `reports/`, overwritten when regenerated for the same period. HTML reports include styled tables and interactive Chart.js graphs where applicable.
 
 ## Configuration
 
-- `.env` - YNAB API token (gitignored)
-- `config.json` - Budget IDs, spending caps, review thresholds
-- `CLAUDE.md` - Instructions for Claude Code assistant sessions
+- `config.json` — All settings: budget connection, spending caps, milestones, grading, review thresholds (generated during onboarding from `config.template.json`, gitignored)
+- `tone-guide.md` — Personality, interpretation rules, commentary guidance (generated during onboarding from `tone-guide.example.md`, gitignored)
+- `.env` — YNAB API token (gitignored)
 
 ## Caching
 
-API responses are cached in `cache/api/` to reduce API calls:
-- Default TTL: 5 minutes
-- Historical data: 24 hours
-
-Net worth snapshots are stored in `cache/net_worth_snapshots.json` for comparison over time.
+API responses are cached in `cache/api/` (default 5-minute TTL, 24 hours for historical data). Net worth snapshots are stored in `cache/net_worth_snapshots.json`.
 
 ## License
 
