@@ -86,4 +86,4 @@ API responses are cached in `cache/api/` (default 5-minute TTL, 24 hours for his
 
 ## License
 
-Personal use.
+[MIT](LICENSE)
