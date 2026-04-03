@@ -138,44 +138,46 @@ class YNABClient:
     # mapping like get_plan_month). For anything else, use client.api directly
     # with client.cached_call().
 
-    def get_accounts(self) -> list:
+    def get_accounts(self, **extra) -> list:
         return self.cached_call(
             "get_accounts",
             self._accounts_api.get_accounts,
             self.budget_id,
             extract=lambda r: r.data.accounts,
+            **extra,
         )
 
-    def get_categories(self) -> list:
+    def get_categories(self, **extra) -> list:
         return self.cached_call(
             "get_categories",
             self._categories_api.get_categories,
             self.budget_id,
             extract=lambda r: r.data.category_groups,
+            **extra,
         )
 
-    def get_transactions(self, since_date: Optional[str] = None) -> list:
-        kwargs = {}
+    def get_transactions(self, *, since_date: Optional[str] = None, **extra) -> list:
         if since_date:
-            kwargs["since_date"] = date.fromisoformat(since_date)
+            extra["since_date"] = date.fromisoformat(since_date)
         return self.cached_call(
             "get_transactions",
             self._transactions_api.get_transactions,
             self.budget_id,
-            **kwargs,
             extract=lambda r: r.data.transactions,
+            **extra,
         )
 
-    def get_month(self, month: str) -> dict:
+    def get_month(self, month: str, **extra) -> dict:
         return self.cached_call(
             "get_month",
             self._months_api.get_plan_month,
             self.budget_id,
             date.fromisoformat(month),
             extract=lambda r: r.data.month,
+            **extra,
         )
 
-    def get_category_by_month(self, category_id: str, month: str) -> dict:
+    def get_category_by_month(self, category_id: str, month: str, **extra) -> dict:
         return self.cached_call(
             "get_category_by_month",
             self._categories_api.get_month_category_by_id,
@@ -183,9 +185,10 @@ class YNABClient:
             date.fromisoformat(month),
             category_id,
             extract=lambda r: r.data.category,
+            **extra,
         )
 
-    def get_account_transactions(self, account_id: str) -> list:
+    def get_account_transactions(self, account_id: str, **extra) -> list:
         return self.cached_call(
             "get_account_transactions",
             self._transactions_api.get_transactions_by_account,
@@ -193,35 +196,45 @@ class YNABClient:
             account_id,
             extract=lambda r: r.data.transactions,
             ttl=CACHE_TTL_HISTORICAL,
+            **extra,
         )
 
-    def get_all_transactions(self) -> list:
+    def get_all_transactions(self, **extra) -> list:
         return self.cached_call(
             "get_all_transactions",
             self._transactions_api.get_transactions,
             self.budget_id,
             extract=lambda r: r.data.transactions,
             ttl=CACHE_TTL_HISTORICAL,
+            **extra,
         )
 
     def update_transaction(
         self,
         transaction_id: str,
+        *,
         approved: Optional[bool] = None,
         memo: Optional[str] = None,
         category_id: Optional[str] = None,
         flag_color: Optional[str] = None,
+        payee_name: Optional[str] = None,
+        **extra,
     ) -> dict:
-        """Update a transaction. Not cached (write operation)."""
-        fields = {}
-        if approved is not None:
-            fields["approved"] = approved
-        if memo is not None:
-            fields["memo"] = memo
-        if category_id is not None:
-            fields["category_id"] = category_id
-        if flag_color is not None:
-            fields["flag_color"] = flag_color
+        """Update a transaction. Not cached (write operation).
+
+        Common fields are explicit params. Any additional
+        ynab.ExistingTransaction field can be passed as a kwarg.
+        """
+        fields = {
+            k: v for k, v in {
+                "approved": approved,
+                "memo": memo,
+                "category_id": category_id,
+                "flag_color": flag_color,
+                "payee_name": payee_name,
+            }.items() if v is not None
+        }
+        fields.update(extra)
 
         wrapper = ynab.PutTransactionWrapper(
             transaction=ynab.ExistingTransaction(**fields)
