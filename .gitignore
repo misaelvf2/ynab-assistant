@@ -24,3 +24,4 @@ dashboard/plugins/*
 !dashboard/plugins/__init__.py
 !dashboard/plugins/.gitkeep
 .claude/skills/personal-budget/tone-guide.md
+.claude/skills/personal-budget/USER_RULES.md
