@@ -31,7 +31,7 @@ If `config.json` doesn't exist at all, copy `config.template.json` to `config.js
 
 **Step 1 — Budget connection:**
 - Check `.env` for `YNAB_PAT`. If missing, ask the user to create a YNAB personal access token at https://app.ynab.com/settings/developer and add it.
-- Use the SDK to list available budgets: `ynab.BudgetsApi(client.api).get_budgets()`
+- Use the SDK to list available budgets: `ynab.PlansApi(client.api).get_plans()`
 - Let the user pick which budget to use. Write `budget_id` and `budget_name` to `config.json`.
 
 **Step 2 — Fetch the user's budget structure:**
