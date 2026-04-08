@@ -92,57 +92,59 @@
                 <!-- Main Grid -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    <!-- Eating Out Card -->
-                    <div class="bg-white rounded-xl shadow p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <h2 class="text-lg font-semibold text-gray-900">Eating Out</h2>
-                            <span
-                                class="px-2 py-1 rounded text-xs font-medium uppercase"
-                                :class="{
-                                    'bg-green-100 text-green-800': data.eating_out.status === 'on_track',
-                                    'bg-yellow-100 text-yellow-800': data.eating_out.status === 'caution',
-                                    'bg-orange-100 text-orange-800': data.eating_out.status === 'warning',
-                                    'bg-red-100 text-red-800': data.eating_out.status === 'over'
-                                }"
-                                x-text="data.eating_out.status.replace('_', ' ')"
-                            ></span>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="text-gray-600">Spent</span>
-                                <span class="font-medium" x-text="formatCurrency(data.eating_out.spent) + ' / $' + data.eating_out.hard_cap"></span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-3">
-                                <div
-                                    class="h-3 rounded-full transition-all"
+                    <!-- Eating Out Card (loaded from plugin) -->
+                    <template x-if="eatingOut">
+                        <div class="bg-white rounded-xl shadow p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h2 class="text-lg font-semibold text-gray-900">Eating Out</h2>
+                                <span
+                                    class="px-2 py-1 rounded text-xs font-medium uppercase"
                                     :class="{
-                                        'bg-green-500': data.eating_out.percent_used <= 50,
-                                        'bg-yellow-500': data.eating_out.percent_used > 50 && data.eating_out.percent_used <= 80,
-                                        'bg-orange-500': data.eating_out.percent_used > 80 && data.eating_out.percent_used <= 100,
-                                        'bg-red-500': data.eating_out.percent_used > 100
+                                        'bg-green-100 text-green-800': eatingOut.status === 'on_track',
+                                        'bg-yellow-100 text-yellow-800': eatingOut.status === 'caution',
+                                        'bg-orange-100 text-orange-800': eatingOut.status === 'warning',
+                                        'bg-red-100 text-red-800': eatingOut.status === 'over'
                                     }"
-                                    :style="'width: ' + Math.min(data.eating_out.percent_used, 100) + '%'"
-                                ></div>
+                                    x-text="eatingOut.status.replace('_', ' ')"
+                                ></span>
                             </div>
-                        </div>
 
-                        <div class="grid grid-cols-2 gap-4 text-center">
-                            <div class="bg-gray-50 rounded-lg p-3">
-                                <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(data.eating_out.remaining)"></p>
-                                <p class="text-xs text-gray-500">Remaining</p>
+                            <div class="mb-4">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-gray-600">Spent</span>
+                                    <span class="font-medium" x-text="formatCurrency(eatingOut.spent) + ' / $' + eatingOut.hard_cap"></span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-3">
+                                    <div
+                                        class="h-3 rounded-full transition-all"
+                                        :class="{
+                                            'bg-green-500': eatingOut.percent_used <= 50,
+                                            'bg-yellow-500': eatingOut.percent_used > 50 && eatingOut.percent_used <= 80,
+                                            'bg-orange-500': eatingOut.percent_used > 80 && eatingOut.percent_used <= 100,
+                                            'bg-red-500': eatingOut.percent_used > 100
+                                        }"
+                                        :style="'width: ' + Math.min(eatingOut.percent_used, 100) + '%'"
+                                    ></div>
+                                </div>
                             </div>
-                            <div class="bg-gray-50 rounded-lg p-3">
-                                <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(data.eating_out.daily_allowance)"></p>
-                                <p class="text-xs text-gray-500">Per day</p>
-                            </div>
-                        </div>
 
-                        <p class="text-xs text-gray-500 mt-3 text-center">
-                            Day <span x-text="data.eating_out.days_elapsed"></span> of <span x-text="data.eating_out.days_in_month"></span>
-                            &bull; Projected: <span x-text="formatCurrency(data.eating_out.projected)"></span>
-                        </p>
-                    </div>
+                            <div class="grid grid-cols-2 gap-4 text-center">
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(eatingOut.remaining)"></p>
+                                    <p class="text-xs text-gray-500">Remaining</p>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(eatingOut.daily_allowance)"></p>
+                                    <p class="text-xs text-gray-500">Per day</p>
+                                </div>
+                            </div>
+
+                            <p class="text-xs text-gray-500 mt-3 text-center">
+                                Day <span x-text="eatingOut.days_elapsed"></span> of <span x-text="eatingOut.days_in_month"></span>
+                                &bull; Projected: <span x-text="formatCurrency(eatingOut.projected)"></span>
+                            </p>
+                        </div>
+                    </template>
 
                     <!-- Spending Velocity Card -->
                     <div class="bg-white rounded-xl shadow p-6">
@@ -235,22 +237,23 @@
                     </div>
                 </div>
 
-                <!-- Net Worth Chart -->
-                <div class="bg-white rounded-xl shadow p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Net Worth Trend (12 Months)</h2>
-                    <div class="h-64">
-                        <canvas id="netWorthChart"></canvas>
-                    </div>
-                </div>
-
             </div>
         </template>
+
+        <!-- Net Worth Chart — always in DOM so Chart.js can measure it -->
+        <div class="bg-white rounded-xl shadow p-6 mt-6" :class="{ 'invisible': !data }">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Net Worth Trend (12 Months)</h2>
+            <div class="h-64">
+                <canvas id="netWorthChart"></canvas>
+            </div>
+        </div>
     </main>
 
     <script>
         function dashboard() {
             return {
                 data: null,
+                eatingOut: null,
                 loading: false,
                 lastUpdated: '',
                 chart: null,
@@ -262,10 +265,21 @@
                 async fetchData() {
                     this.loading = true;
                     try {
-                        const response = await fetch('/api/summary');
-                        this.data = await response.json();
-                        this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
-                        this.$nextTick(() => this.renderChart());
+                        const [summaryRes, eatingOutRes] = await Promise.allSettled([
+                            fetch('/api/summary'),
+                            fetch('/api/eating-out')
+                        ]);
+
+                        if (summaryRes.status === 'fulfilled') {
+                            this.data = await summaryRes.value.json();
+                            this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
+                            this.$nextTick(() => this.renderChart());
+                        }
+
+                        if (eatingOutRes.status === 'fulfilled' && eatingOutRes.value.ok) {
+                            const eoData = await eatingOutRes.value.json();
+                            if (!eoData.error) this.eatingOut = eoData;
+                        }
                     } catch (error) {
                         console.error('Failed to fetch data:', error);
                     } finally {
@@ -276,10 +290,21 @@
                 async refresh() {
                     this.loading = true;
                     try {
-                        const response = await fetch('/api/refresh', { method: 'POST' });
-                        this.data = await response.json();
-                        this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
-                        this.$nextTick(() => this.renderChart());
+                        const [summaryRes, eatingOutRes] = await Promise.allSettled([
+                            fetch('/api/refresh', { method: 'POST' }),
+                            fetch('/api/eating-out')
+                        ]);
+
+                        if (summaryRes.status === 'fulfilled') {
+                            this.data = await summaryRes.value.json();
+                            this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
+                            this.$nextTick(() => this.renderChart());
+                        }
+
+                        if (eatingOutRes.status === 'fulfilled' && eatingOutRes.value.ok) {
+                            const eoData = await eatingOutRes.value.json();
+                            if (!eoData.error) this.eatingOut = eoData;
+                        }
                     } catch (error) {
                         console.error('Failed to refresh:', error);
                     } finally {
