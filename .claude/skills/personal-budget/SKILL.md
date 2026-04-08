@@ -131,31 +131,15 @@ During onboarding, add these keys to `config.json` (see `config.template.json` f
 
 ---
 
-## Part 3: User Rules (filled in after onboarding)
+## Part 3: User Rules
 
-<!-- This section is populated during onboarding. In the template, it's blank. -->
+User-specific rules, script docs, and routing live in `USER_RULES.md` (generated during onboarding, gitignored).
 
-### Spending Rules
+If `USER_RULES.md` doesn't exist, run onboarding (Part 1) to generate it.
 
-<!-- Populated during onboarding. Example entries:
-1. **Eating out hard cap**: `config.json` → `spending_caps.<category>.monthly_limit`
-2. **Large transaction flag**: `config.json` → `review_settings.flag_large_transactions_above`
-3. **Memo requirement**: `config.json` → `review_settings.require_memo_for_transactions_above`
-4. **Payee categorization rules**: e.g. "Cafeteria $10+ = lunch (Eating Out), <$5 = snack (Fun Money)"
-5. **AI-Approved flag**: agent-approved transactions flagged orange in YNAB
--->
+### Default Request Routing
 
-See `tone-guide.md` for personality, interpretation rules, and commentary guidance.
-
-### User-Specific Scripts (`user_scripts/`)
-
-<!-- Populated during onboarding. Document each generated script here with:
-- Trigger phrases
-- Usage / CLI flags
-- What config it reads from
--->
-
-### Request Routing
+These routes are available out of the box with the generic scripts:
 
 | User says | Run |
 |-----------|-----|
@@ -167,7 +151,7 @@ See `tone-guide.md` for personality, interpretation rules, and commentary guidan
 | "Financial checkup" | Run all scripts and summarize |
 | "Show me the dashboard" | `uv run uvicorn dashboard.app:app --reload --port 8000` |
 
-<!-- Add user-specific script routes here during onboarding -->
+<!-- Onboarding adds user-specific routes to USER_RULES.md -->
 
 ---
 
