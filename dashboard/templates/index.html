@@ -92,57 +92,58 @@
                 <!-- Main Grid -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    <!-- Eating Out Card (loaded from plugin) -->
-                    <template x-if="eatingOut">
+                    <!-- Plugin Cards -->
+                    <template x-for="plugin in plugins" :key="plugin.id">
                         <div class="bg-white rounded-xl shadow p-6">
-                            <div class="flex justify-between items-start mb-4">
-                                <h2 class="text-lg font-semibold text-gray-900">Eating Out</h2>
-                                <span
-                                    class="px-2 py-1 rounded text-xs font-medium uppercase"
-                                    :class="{
-                                        'bg-green-100 text-green-800': eatingOut.status === 'on_track',
-                                        'bg-yellow-100 text-yellow-800': eatingOut.status === 'caution',
-                                        'bg-orange-100 text-orange-800': eatingOut.status === 'warning',
-                                        'bg-red-100 text-red-800': eatingOut.status === 'over'
-                                    }"
-                                    x-text="eatingOut.status.replace('_', ' ')"
-                                ></span>
-                            </div>
+                            <template x-if="plugin.widget_type === 'spending-cap'">
+                                <div>
+                                    <div class="flex justify-between items-start mb-4">
+                                        <h2 class="text-lg font-semibold text-gray-900" x-text="plugin.title"></h2>
+                                        <span
+                                            class="px-2 py-1 rounded text-xs font-medium uppercase"
+                                            :class="statusBadgeClass(plugin.status)"
+                                            x-text="plugin.status.replace('_', ' ')"
+                                        ></span>
+                                    </div>
 
-                            <div class="mb-4">
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="text-gray-600">Spent</span>
-                                    <span class="font-medium" x-text="formatCurrency(eatingOut.spent) + ' / $' + eatingOut.hard_cap"></span>
-                                </div>
-                                <div class="w-full bg-gray-200 rounded-full h-3">
-                                    <div
-                                        class="h-3 rounded-full transition-all"
-                                        :class="{
-                                            'bg-green-500': eatingOut.percent_used <= 50,
-                                            'bg-yellow-500': eatingOut.percent_used > 50 && eatingOut.percent_used <= 80,
-                                            'bg-orange-500': eatingOut.percent_used > 80 && eatingOut.percent_used <= 100,
-                                            'bg-red-500': eatingOut.percent_used > 100
-                                        }"
-                                        :style="'width: ' + Math.min(eatingOut.percent_used, 100) + '%'"
-                                    ></div>
-                                </div>
-                            </div>
+                                    <div class="mb-4">
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span class="text-gray-600">Spent</span>
+                                            <span class="font-medium" x-text="formatCurrency(plugin.spent) + ' / ' + formatCurrency(plugin.hard_cap)"></span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-3">
+                                            <div
+                                                class="h-3 rounded-full transition-all"
+                                                :class="progressBarClass(plugin.percent_used)"
+                                                :style="'width: ' + Math.min(plugin.percent_used, 100) + '%'"
+                                            ></div>
+                                        </div>
+                                    </div>
 
-                            <div class="grid grid-cols-2 gap-4 text-center">
-                                <div class="bg-gray-50 rounded-lg p-3">
-                                    <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(eatingOut.remaining)"></p>
-                                    <p class="text-xs text-gray-500">Remaining</p>
-                                </div>
-                                <div class="bg-gray-50 rounded-lg p-3">
-                                    <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(eatingOut.daily_allowance)"></p>
-                                    <p class="text-xs text-gray-500">Per day</p>
-                                </div>
-                            </div>
+                                    <div class="grid grid-cols-2 gap-4 text-center">
+                                        <div class="bg-gray-50 rounded-lg p-3">
+                                            <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(plugin.remaining)"></p>
+                                            <p class="text-xs text-gray-500">Remaining</p>
+                                        </div>
+                                        <div class="bg-gray-50 rounded-lg p-3">
+                                            <p class="text-2xl font-bold text-gray-900" x-text="formatCurrency(plugin.daily_allowance)"></p>
+                                            <p class="text-xs text-gray-500">Per day</p>
+                                        </div>
+                                    </div>
 
-                            <p class="text-xs text-gray-500 mt-3 text-center">
-                                Day <span x-text="eatingOut.days_elapsed"></span> of <span x-text="eatingOut.days_in_month"></span>
-                                &bull; Projected: <span x-text="formatCurrency(eatingOut.projected)"></span>
-                            </p>
+                                    <p class="text-xs text-gray-500 mt-3 text-center">
+                                        Day <span x-text="plugin.days_elapsed"></span> of <span x-text="plugin.days_in_month"></span>
+                                        &bull; Projected: <span x-text="formatCurrency(plugin.projected)"></span>
+                                    </p>
+                                </div>
+                            </template>
+
+                            <template x-if="plugin.widget_type !== 'spending-cap'">
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-900 mb-4" x-text="plugin.title"></h2>
+                                    <pre class="text-xs text-gray-600 whitespace-pre-wrap overflow-auto" x-text="JSON.stringify(plugin, null, 2)"></pre>
+                                </div>
+                            </template>
                         </div>
                     </template>
 
@@ -253,7 +254,7 @@
         function dashboard() {
             return {
                 data: null,
-                eatingOut: null,
+                plugins: [],
                 loading: false,
                 lastUpdated: '',
                 chart: null,
@@ -265,21 +266,18 @@
                 async fetchData() {
                     this.loading = true;
                     try {
-                        const [summaryRes, eatingOutRes] = await Promise.allSettled([
+                        const [summaryRes, pluginsRes] = await Promise.all([
                             fetch('/api/summary'),
-                            fetch('/api/eating-out')
+                            fetch('/api/plugins')
                         ]);
 
-                        if (summaryRes.status === 'fulfilled') {
-                            this.data = await summaryRes.value.json();
-                            this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
-                            this.$nextTick(() => this.renderChart());
-                        }
+                        this.data = await summaryRes.json();
+                        this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
 
-                        if (eatingOutRes.status === 'fulfilled' && eatingOutRes.value.ok) {
-                            const eoData = await eatingOutRes.value.json();
-                            if (!eoData.error) this.eatingOut = eoData;
-                        }
+                        const pluginDefs = pluginsRes.ok ? await pluginsRes.json() : [];
+                        this.plugins = await this.fetchPluginData(pluginDefs);
+
+                        this.$nextTick(() => this.renderChart());
                     } catch (error) {
                         console.error('Failed to fetch data:', error);
                     } finally {
@@ -290,26 +288,39 @@
                 async refresh() {
                     this.loading = true;
                     try {
-                        const [summaryRes, eatingOutRes] = await Promise.allSettled([
+                        const [summaryRes, pluginsRes] = await Promise.all([
                             fetch('/api/refresh', { method: 'POST' }),
-                            fetch('/api/eating-out')
+                            fetch('/api/plugins')
                         ]);
 
-                        if (summaryRes.status === 'fulfilled') {
-                            this.data = await summaryRes.value.json();
-                            this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
-                            this.$nextTick(() => this.renderChart());
-                        }
+                        this.data = await summaryRes.json();
+                        this.lastUpdated = new Date(this.data.generated_at).toLocaleTimeString();
 
-                        if (eatingOutRes.status === 'fulfilled' && eatingOutRes.value.ok) {
-                            const eoData = await eatingOutRes.value.json();
-                            if (!eoData.error) this.eatingOut = eoData;
-                        }
+                        const pluginDefs = pluginsRes.ok ? await pluginsRes.json() : [];
+                        this.plugins = await this.fetchPluginData(pluginDefs);
+
+                        this.$nextTick(() => this.renderChart());
                     } catch (error) {
                         console.error('Failed to refresh:', error);
                     } finally {
                         this.loading = false;
                     }
+                },
+
+                async fetchPluginData(pluginDefs) {
+                    const responses = await Promise.allSettled(
+                        pluginDefs.map(async (plugin) => {
+                            const response = await fetch(plugin.endpoint);
+                            if (!response.ok) return null;
+                            const data = await response.json();
+                            if (data?.error) return null;
+                            return { ...plugin, ...data };
+                        })
+                    );
+
+                    return responses
+                        .filter(result => result.status === 'fulfilled' && result.value)
+                        .map(result => result.value);
                 },
 
                 formatCurrency(value) {
@@ -319,6 +330,22 @@
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0
                     }).format(value);
+                },
+
+                statusBadgeClass(status) {
+                    return {
+                        'bg-green-100 text-green-800': status === 'on_track',
+                        'bg-yellow-100 text-yellow-800': status === 'caution',
+                        'bg-orange-100 text-orange-800': status === 'warning',
+                        'bg-red-100 text-red-800': status === 'over'
+                    };
+                },
+
+                progressBarClass(percentUsed) {
+                    if (percentUsed <= 50) return 'bg-green-500';
+                    if (percentUsed <= 80) return 'bg-yellow-500';
+                    if (percentUsed <= 100) return 'bg-orange-500';
+                    return 'bg-red-500';
                 },
 
                 renderChart() {
