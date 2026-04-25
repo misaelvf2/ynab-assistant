@@ -371,6 +371,9 @@
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            // Disable animation because the initial animated render can paint a blank canvas
+                            // during Alpine's first layout pass in this dashboard.
+                            animation: false,
                             plugins: {
                                 legend: {
                                     position: 'top'
