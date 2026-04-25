@@ -31,6 +31,7 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 # -- Plugin loading -----------------------------------------------------------
 
 PLUGINS_DIR = Path(__file__).parent / "plugins"
+app.state.plugins = []
 
 
 def load_plugins(application: FastAPI):
@@ -51,6 +52,9 @@ def load_plugins(application: FastAPI):
             module = importlib.import_module(module_name)
             if hasattr(module, "register"):
                 module.register(application)
+            plugin_meta = getattr(module, "WIDGET_META", None)
+            if plugin_meta:
+                application.state.plugins.append(plugin_meta)
         except Exception as exc:
             print(f"Warning: failed to load plugin {plugin_path.name}: {exc}")
 
@@ -64,6 +68,12 @@ load_plugins(app)
 async def dashboard(request: Request):
     """Serve the dashboard HTML."""
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/api/plugins")
+async def api_plugins():
+    """List dashboard plugins available to the frontend."""
+    return app.state.plugins
 
 
 @app.get("/api/summary")
