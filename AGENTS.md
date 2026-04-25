@@ -29,6 +29,7 @@ In Pi:
 - Generated reports are written to `reports/`
 - User-specific scripts live in `user_scripts/`
 - Dashboard plugins live in `dashboard/plugins/`
+- Correlated/imported transaction pairs (credit-card payments, transfers, rent/card payment offsets, duplicate imported counterparts) require special care: inspect both sides before editing, convert one side to a transfer only deliberately, then re-fetch and verify whether YNAB created/matched a counterpart before deleting or approving the other side. Verify `cleared` status on every transaction in the correlated unit; if the unit is fully understood and reconciles to imported/cleared activity, set generated or linked counterparts to `cleared` when appropriate.
 
 ## Agent Role
 
