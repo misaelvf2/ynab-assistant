@@ -1,24 +1,37 @@
 # YNAB Financial Assistant
 
-This repository can be driven by either Claude Code or Pi Coding Agent.
+This repository can be driven by any coding agent that can read workspace
+instructions and run the project commands. Claude Code and Pi Coding Agent have
+repository-specific integration, but neither owns the budgeting workflow.
 
 ## Primary Project Guidance
 
-Detailed budgeting behavior lives in these skill docs:
+Detailed budgeting behavior lives in these shared skill docs:
 
 - `.claude/skills/ynab-api/SKILL.md` — YNAB API usage, SDK patterns, caching, data formats
 - `.claude/skills/personal-budget/SKILL.md` — onboarding, budget rules, script generation, request routing, dashboard conventions
 
 Agents working in this repo should read those files when the task touches budgeting behavior, onboarding, reports, dashboards, or YNAB API usage.
 
-## Pi Coding Agent Notes
+The `.claude/skills/` directory name is a legacy compatibility path for Claude
+Code's skill discovery. Its Markdown files are the agent-neutral project
+specifications and are intentionally used by other agents too. User-specific
+guidance is stored alongside the personal-budget spec at:
 
-This repo includes `.pi/settings.json` so Pi can discover the project skill docs in `.claude/skills/`.
+- `.claude/skills/personal-budget/USER_RULES.md`
+- `.claude/skills/personal-budget/tone-guide.md`
 
-In Pi:
-- use this `AGENTS.md` as the primary workspace context file
-- load the relevant skill doc before implementing budget-specific behavior
-- use the existing scripts and dashboard endpoints rather than reinventing logic
+## Agent Integration
+
+This repo includes adapters for agents with their own workspace conventions:
+
+- `AGENTS.md` is the agent-neutral entry point.
+- `CLAUDE.md` provides Claude Code compatibility.
+- `.pi/settings.json` lets Pi discover the shared skill docs in `.claude/skills/`.
+
+Other agents should load this file first, then read the relevant shared skill
+doc before implementing budget-specific behavior. Use the existing scripts and
+dashboard endpoints rather than reinventing their logic.
 
 ## Shared Conventions
 

@@ -43,15 +43,15 @@ If `config.json` doesn't exist at all, copy `config.template.json` to `config.js
 | Question | What it configures |
 |----------|--------------------|
 | "Are there categories you want to track with hard spending caps?" | `config.json` → `spending_caps` (need category name, ID, and dollar limit) |
-| "Do you pay credit cards in full each month, or carry balances?" | `tone-guide.md` → interpretation intent for credit cards |
+| "Do you pay credit cards in full each month, or carry balances?" | `.claude/skills/personal-budget/tone-guide.md` → interpretation intent for credit cards |
 | "What are your savings categories and goals?" | Confirm `config.json` → `interpretation.savings_keywords` match their actual fund names |
 | "What net worth milestones are you targeting?" | `config.json` → `net_worth.milestones` |
-| "How should I talk to you about your finances?" (blunt, encouraging, coach-like, curmudgeonly) | `tone-guide.md` → personality section |
+| "How should I talk to you about your finances?" (blunt, encouraging, coach-like, curmudgeonly) | `.claude/skills/personal-budget/tone-guide.md` → personality section |
 | "What does a good month look like for you?" (what to grade on) | `config.json` → `grading` |
 
 **Step 4 — Generate files:**
 - Write user-specific fields to `config.json` (see Part 2 for schema)
-- Write `tone-guide.md` (see `tone-guide.example.md` for format)
+- Write `.claude/skills/personal-budget/tone-guide.md` (see the adjacent `tone-guide.example.md` for format)
 - Generate user-specific scripts in `user_scripts/` based on their spending caps and grading preferences (see Part 2 for patterns)
 - Generate dashboard plugins in `dashboard/plugins/` for any tracked categories
 - Fill in Part 3 of this SKILL.md with the user's script docs and routing table
@@ -81,7 +81,7 @@ If `config.json` doesn't exist at all, copy `config.template.json` to `config.js
 - Scores across user-defined dimensions (budget adherence, category caps, savings, hygiene)
 - Letter grade based on total score
 - Prose analysis for each section (cash flow, spending, savings, net worth)
-- References `tone-guide.md` for commentary tone
+- References `.claude/skills/personal-budget/tone-guide.md` for commentary tone
 
 **Transaction approval**:
 - Compares unapproved transactions against historical patterns
@@ -133,9 +133,9 @@ During onboarding, add these keys to `config.json` (see `config.template.json` f
 
 ## Part 3: User Rules
 
-User-specific rules, script docs, and routing live in `USER_RULES.md` (generated during onboarding, gitignored).
+User-specific rules, script docs, and routing live in `.claude/skills/personal-budget/USER_RULES.md` (generated during onboarding, gitignored).
 
-If `USER_RULES.md` doesn't exist, run onboarding (Part 1) to generate it.
+If `.claude/skills/personal-budget/USER_RULES.md` doesn't exist, run onboarding (Part 1) to generate it.
 
 ### Default Request Routing
 
@@ -151,7 +151,7 @@ These routes are available out of the box with the generic scripts:
 | "Financial checkup" | Run all scripts and summarize |
 | "Show me the dashboard" | `uv run uvicorn dashboard.app:app --reload --port 8000` |
 
-<!-- Onboarding adds user-specific routes to USER_RULES.md -->
+<!-- Onboarding adds user-specific routes to .claude/skills/personal-budget/USER_RULES.md -->
 
 ---
 
@@ -159,7 +159,7 @@ These routes are available out of the box with the generic scripts:
 
 Run via `uv run python scripts/<script>.py`.
 
-**Output pattern:** Scripts produce structured data (summary blocks with key metrics and status classifications) plus markdown tables. They do **not** generate interpretive commentary or personality-driven prose. When presenting results to the user, the agent reads the script output and generates commentary using `tone-guide.md` for tone and `config.json` for interpretation rules. This separation keeps scripts reusable across different users and lets the agent adapt its voice.
+**Output pattern:** Scripts produce structured data (summary blocks with key metrics and status classifications) plus markdown tables. They do **not** generate interpretive commentary or personality-driven prose. When presenting results to the user, the agent reads the script output and generates commentary using `.claude/skills/personal-budget/tone-guide.md` for tone and `config.json` for interpretation rules. This separation keeps scripts reusable across different users and lets the agent adapt its voice.
 
 ### spending_summary.py
 **Triggers:** monthly spending, budget status, category breakdowns
@@ -239,4 +239,4 @@ Reports are overwritten when regenerated for the same period. Read previous repo
 
 Use `load_config()` for all settings.
 
-Personality, interpretation intent (credit cards, savings), and commentary guidance are in `tone-guide.md` — the single owner for all agent-behavior rules. See `tone-guide.example.md` for the template format.
+Personality, interpretation intent (credit cards, savings), and commentary guidance are in `.claude/skills/personal-budget/tone-guide.md` — the single owner for all agent-behavior rules. See the adjacent `tone-guide.example.md` for the template format.

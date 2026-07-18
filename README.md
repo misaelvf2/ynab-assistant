@@ -1,8 +1,8 @@
 # YNAB Financial Assistant
 
-A personal finance assistant for [YNAB](https://www.ynab.com/) (You Need A Budget) that can be driven by either [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or [Pi Coding Agent](https://github.com/mariozechner/pi-coding-agent). Instead of running scripts manually, you talk to your coding agent — ask about your spending, net worth, or transactions, and it runs the right tools, interprets the data, and responds in your preferred tone.
+A personal finance assistant for [YNAB](https://www.ynab.com/) (You Need A Budget) that can be driven by any coding agent capable of reading workspace instructions and running project commands. Instead of running scripts manually, you talk to your agent — ask about your spending, net worth, or transactions, and it runs the right tools, interprets the data, and responds in your preferred tone.
 
-The project keeps its agent-facing budgeting instructions in Claude Code-style skill specs under `.claude/skills/`, plus a top-level `AGENTS.md` for cross-agent workspace guidance and a `CLAUDE.md` compatibility file.
+The top-level `AGENTS.md` is the agent-neutral entry point. Detailed budgeting instructions currently live in Markdown skill specs under `.claude/skills/`; that directory name is retained for Claude Code compatibility, but the specifications themselves are shared by every agent.
 
 - `.claude/skills/ynab-api/SKILL.md` — YNAB SDK wrapper, caching, data formats
 - `.claude/skills/personal-budget/SKILL.md` — onboarding, script generation, budget rules, request routing
@@ -11,11 +11,10 @@ The project keeps its agent-facing budgeting instructions in Claude Code-style s
 
 This repo is agent-friendly rather than tied to a single coding assistant:
 
+- **Any compatible agent** can start with `AGENTS.md`, read the shared skill specs, and run the same project commands.
 - **Claude Code** can use the `.claude/skills/` skill specs directly.
 - **Pi Coding Agent** can use `AGENTS.md` as workspace instructions and, via `.pi/settings.json`, discover the project skill docs in `.claude/skills/`.
 - The Python scripts, dashboard, configuration, and reports are agent-agnostic — the agent mainly handles routing, tool use, and commentary.
-
-If you are using a different agent, you can still run the same scripts manually from the command line.
 
 ## How It Works
 
@@ -41,11 +40,11 @@ Scripts produce structured data. The agent adds the personality and context. Thi
    YNAB_PAT=your_token_here
    ```
    Get a token at https://app.ynab.com/settings/developer.
-5. **Start a Claude Code or Pi Coding Agent session and let it onboard you.** Your agent will:
+5. **Start your coding agent in the repository and let it onboard you.** Your agent will:
    - Connect to your YNAB budget
    - Show your category structure
    - Ask about spending caps, savings goals, net worth milestones, and preferred tone
-   - Generate `config.json`, `tone-guide.md`, user-specific scripts, and dashboard plugins
+   - Generate `config.json`, `.claude/skills/personal-budget/tone-guide.md`, `.claude/skills/personal-budget/USER_RULES.md`, user-specific scripts, and dashboard plugins
 
 See the [personal-budget skill spec](.claude/skills/personal-budget/SKILL.md) for the full onboarding flow and script-generation rules.
 
@@ -103,7 +102,8 @@ Scripts save Markdown and HTML reports to `reports/`, overwritten when regenerat
 ## Configuration
 
 - `config.json` — all settings: budget connection, spending caps, milestones, grading, review thresholds (generated during onboarding from `config.template.json`, gitignored)
-- `tone-guide.md` — personality, interpretation rules, commentary guidance (generated during onboarding from `tone-guide.example.md`, gitignored)
+- `.claude/skills/personal-budget/tone-guide.md` — personality, interpretation rules, commentary guidance (generated during onboarding from `tone-guide.example.md`, gitignored)
+- `.claude/skills/personal-budget/USER_RULES.md` — user-specific request routing and workflow rules (generated during onboarding, gitignored)
 - `.env` — YNAB API token (gitignored)
 
 ## Caching
