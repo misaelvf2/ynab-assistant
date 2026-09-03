@@ -8,6 +8,9 @@
 # Cached data
 cache/
 
+# Change plans and journals (contain transaction data)
+changes/
+
 # Python
 __pycache__/
 *.pyc

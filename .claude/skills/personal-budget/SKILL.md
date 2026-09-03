@@ -150,6 +150,11 @@ These routes are available out of the box with the generic scripts:
 | "How's my spending pace?" | `scripts/spending_velocity.py` |
 | "Financial checkup" | Run all scripts and summarize |
 | "Show me the dashboard" | `uv run uvicorn dashboard.app:app --reload --port 8000` |
+| "How far behind is my budget?" | `scripts/hygiene_status.py` |
+| "Categorize my transactions" | `scripts/categorize_transactions.py plan` → review → `apply --dry-run` → `apply` |
+| "Approve my transactions" | `scripts/approve_transactions.py plan` → review → `apply --dry-run` → `apply` |
+| "Assign money for <month>" | `scripts/assign_month.py plan --month YYYY-MM` → review → `apply --dry-run` → `apply` |
+| "Undo that change" | `<same script> undo changes/journals/<file>.json` |
 
 <!-- Onboarding adds user-specific routes to .claude/skills/personal-budget/USER_RULES.md -->
 
@@ -199,6 +204,30 @@ uv run python scripts/spending_velocity.py [--threshold N] [--alerts-only]
 - `--threshold N` — alert when category is N% ahead of pace (default: 10)
 - `--alerts-only` — only show overspent and warning categories
 
+### hygiene_status.py
+**Triggers:** budget hygiene, backlog, "how far behind", where to start catching up
+```
+uv run python scripts/hygiene_status.py [--months N]
+```
+Read-only. Per-month unapproved/uncategorized/assigned/Ready-to-Assign, recurring payees that stopped appearing, and the list of change journals.
+
+### Effectful scripts: plan / apply / undo
+
+`approve_transactions.py`, `categorize_transactions.py`, and `assign_month.py` share one contract, implemented in `ynab_assistant/changes.py`:
+
+```
+uv run python scripts/<script>.py plan [filters]           # read-only; writes changes/plans/<ts>_<label>.json + a report
+uv run python scripts/<script>.py apply <plan> --dry-run   # re-checks live state, writes nothing
+uv run python scripts/<script>.py apply <plan> [--limit N] # writes; journals before/after to changes/journals/
+uv run python scripts/<script>.py undo <journal>           # restores the journaled before-state (itself journaled)
+```
+
+- Apply skips any entry whose live state no longer matches the plan (stale plan) unless `--force`.
+- Every write is verified against the API response; unverified entries are listed.
+- Plans are editable JSON — resolve MANUAL categorization entries by hand, then apply.
+- `approve` classifies entries SAFE only when the payee+category pattern is established, the amount is below `review_settings.flag_large_transactions_above`, and no duplicate exists; everything else is REVIEW and is never applied without `--include-review`.
+- `assign_month` is one request per category (YNAB limit: 200/hour). Plan one month at a time. `cover` mode brings overspent categories to zero; `target` mode funds caps, savings targets, goals, or recent averages.
+
 ## Reports
 
 All scripts save markdown + HTML to `reports/`:
@@ -212,6 +241,9 @@ All scripts save markdown + HTML to `reports/`:
 | Transaction Review | `YYYY-MM-DD_transaction-review.md` |
 | Transaction Approval | `YYYY-MM-DD_transaction-approval.md` |
 | Monthly Retrospective | `YYYY-MM_monthly-retrospective.md` |
+| Hygiene Status | `YYYY-MM-DD_hygiene-status.md` |
+| Approval / Categorization Plan | `YYYY-MM-DD_approval-plan.md`, `YYYY-MM-DD_categorization-plan.md` |
+| Assignment Plan | `YYYY-MM_assignment-plan.md` |
 
 Reports are overwritten when regenerated for the same period. Read previous reports to compare or reference.
 
@@ -235,6 +267,7 @@ Reports are overwritten when regenerated for the same period. Read previous repo
 - `config.json` — all settings: budget connection, review thresholds, interpretation, spending caps, milestones, grading (generated during onboarding, gitignored). Template: `config.template.json`.
 - `.env` (gitignored) — `YNAB_PAT` token
 - `cache/` — net worth snapshots (`net_worth_snapshots.json`) and API response cache (`api/`)
+- `changes/` (gitignored) — `plans/` and `journals/` written by the effectful scripts
 - `reports/` — generated markdown and HTML reports
 
 Use `load_config()` for all settings.

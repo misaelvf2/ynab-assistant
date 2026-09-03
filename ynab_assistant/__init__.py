@@ -17,6 +17,7 @@ from ynab_assistant.utils import (
     API_CACHE_DIR,
 )
 from ynab_assistant.reports import save_report
+from ynab_assistant.client import CACHE_TTL_DEFAULT, CACHE_TTL_HISTORICAL
 
 __all__ = [
     "YNABClient",
@@ -28,6 +29,8 @@ __all__ = [
     "load_token",
     "load_config",
     "save_report",
+    "CACHE_TTL_DEFAULT",
+    "CACHE_TTL_HISTORICAL",
     "PROJECT_ROOT",
     "CACHE_DIR",
     "REPORTS_DIR",
