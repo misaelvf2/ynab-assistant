@@ -202,6 +202,13 @@ def apply_transaction_changes(client, changes: list[dict], label: str, *,
         if current is None:
             journal.skip(change, "transaction not found (deleted or outside window)")
             continue
+        if current.get("deleted"):
+            journal.skip(change, "transaction is deleted")
+            continue
+        already = all(current.get(f) == v for f, v in change["after"].items())
+        if already:
+            journal.skip(change, "already in target state")
+            continue
         drift = {
             f: (change["before"].get(f), current.get(f))
             for f in change["after"]
@@ -209,13 +216,6 @@ def apply_transaction_changes(client, changes: list[dict], label: str, *,
         }
         if drift and not force:
             journal.skip(change, f"live state differs from plan: {drift}")
-            continue
-        if current.get("deleted"):
-            journal.skip(change, "transaction is deleted")
-            continue
-        already = all(current.get(f) == v for f, v in change["after"].items())
-        if already:
-            journal.skip(change, "already in target state")
             continue
         ready.append((change, current))
 
