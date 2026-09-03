@@ -11,6 +11,7 @@ by the convenience methods below, use client.api directly.
 
 import json
 import hashlib
+import os
 from datetime import datetime, date, timedelta
 from typing import Optional
 
@@ -46,6 +47,11 @@ class YNABClient:
 
         # Set up SDK client
         configuration = ynab.Configuration(access_token=self.token)
+        # Honor a custom CA bundle (e.g. corporate/sandbox proxies). The SDK's
+        # urllib3 pool uses certifi by default and ignores SSL_CERT_FILE.
+        ca_bundle = os.environ.get("SSL_CERT_FILE") or os.environ.get("REQUESTS_CA_BUNDLE")
+        if ca_bundle and os.path.isfile(ca_bundle):
+            configuration.ssl_ca_cert = ca_bundle
         self.api = ynab.ApiClient(configuration)
         self._accounts_api = ynab.AccountsApi(self.api)
         self._categories_api = ynab.CategoriesApi(self.api)
