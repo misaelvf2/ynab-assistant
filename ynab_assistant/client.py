@@ -162,9 +162,17 @@ class YNABClient:
             **extra,
         )
 
+    # The YNAB API returns only roughly the trailing 12 months when no
+    # since_date is given. Default to the plan's first month so "all
+    # transactions" really means all.
+    def first_month(self) -> str:
+        if not hasattr(self, "_first_month"):
+            plan = ynab.PlansApi(self.api).get_plan_by_id(self.budget_id).data.plan
+            self._first_month = plan.first_month.isoformat()
+        return self._first_month
+
     def get_transactions(self, *, since_date: Optional[str] = None, **extra) -> list:
-        if since_date:
-            extra["since_date"] = date.fromisoformat(since_date)
+        extra["since_date"] = date.fromisoformat(since_date or self.first_month())
         return self.cached_call(
             "get_transactions",
             self._transactions_api.get_transactions,
@@ -195,6 +203,7 @@ class YNABClient:
         )
 
     def get_account_transactions(self, account_id: str, **extra) -> list:
+        extra.setdefault("since_date", date.fromisoformat(self.first_month()))
         return self.cached_call(
             "get_account_transactions",
             self._transactions_api.get_transactions_by_account,
@@ -206,6 +215,7 @@ class YNABClient:
         )
 
     def get_all_transactions(self, **extra) -> list:
+        extra.setdefault("since_date", date.fromisoformat(self.first_month()))
         return self.cached_call(
             "get_all_transactions",
             self._transactions_api.get_transactions,
