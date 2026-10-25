@@ -9,6 +9,7 @@ It is NOT meant to mirror the SDK's API surface. For operations not covered
 by the convenience methods below, use client.api directly.
 """
 
+import os
 import json
 import hashlib
 from datetime import datetime, date, timedelta
@@ -45,7 +46,9 @@ class YNABClient:
         self.cache_stats = {"hits": 0, "misses": 0}
 
         # Set up SDK client
-        configuration = ynab.Configuration(access_token=self.token)
+        # The SDK defaults to certifi; honor standard CA env vars (e.g. behind a TLS proxy)
+        ca_bundle = os.getenv("REQUESTS_CA_BUNDLE") or os.getenv("SSL_CERT_FILE")
+        configuration = ynab.Configuration(access_token=self.token, ssl_ca_cert=ca_bundle)
         self.api = ynab.ApiClient(configuration)
         self._accounts_api = ynab.AccountsApi(self.api)
         self._categories_api = ynab.CategoriesApi(self.api)
