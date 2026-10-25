@@ -23,6 +23,9 @@ from ynab_assistant.utils import load_token, load_config, CACHE_DIR, API_CACHE_D
 CACHE_TTL_DEFAULT = 300  # 5 minutes for most data
 CACHE_TTL_HISTORICAL = 86400  # 24 hours for historical/static data
 
+# The API returns only the last year of transactions when since_date is omitted
+FULL_HISTORY_SINCE = date(1900, 1, 1)
+
 
 def _model_to_dict(obj) -> dict | list | str | int | float | bool | None:
     """Convert a Pydantic model (or list of models) to a JSON-serializable dict.
@@ -192,6 +195,7 @@ class YNABClient:
         )
 
     def get_account_transactions(self, account_id: str, **extra) -> list:
+        extra.setdefault("since_date", FULL_HISTORY_SINCE)
         return self.cached_call(
             "get_account_transactions",
             self._transactions_api.get_transactions_by_account,
@@ -203,6 +207,7 @@ class YNABClient:
         )
 
     def get_all_transactions(self, **extra) -> list:
+        extra.setdefault("since_date", FULL_HISTORY_SINCE)
         return self.cached_call(
             "get_all_transactions",
             self._transactions_api.get_transactions,
