@@ -207,8 +207,8 @@ uv run python scripts/reconcile_account.py "ACCOUNT" BALANCE [--apply] [--memo T
 ```
 - Compares BALANCE with the account's **cleared** balance and plans one adjustment for the difference, dated today, using YNAB's "Reconciliation Balance Adjustment" payee, cleared as `reconciled` and approved.
 - Dry run by default: prints the plan and writes nothing. `--apply` creates it, then re-reads the account to confirm the cleared balance.
-- Optional `reconciliation` section in `config.json`: `accounts` (an allow-list; each entry's `category` is where the adjustment goes, `null` for uncategorized/off-budget) and `max_adjustment` (dollars; larger adjustments are refused). The template ships with an empty `accounts` list, so nothing can be reconciled until accounts are added; remove the `accounts` key to allow every account.
-- Exit code 2 means refused (account not allowed, over the cap, bad amount, category on an off-budget account); nothing is written.
+- Optional `reconciliation` section in `config.json`: `accounts` (an allow-list; each entry's `category` is where the adjustment goes, `null` for uncategorized/off-budget). The template ships with an empty `accounts` list, so nothing can be reconciled until accounts are added; remove the `accounts` key to allow every account.
+- Exit code 2 means refused (account not allowed, bad amount, category on an off-budget account); nothing is written.
 - It does not mark the account's other cleared transactions as reconciled.
 
 ## Reports

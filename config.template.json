@@ -25,7 +25,6 @@
     "letter_grades": { "A": 90, "B": 80, "C": 70, "D": 60 }
   },
   "reconciliation": {
-    "max_adjustment": null,
     "accounts": {}
   }
 }

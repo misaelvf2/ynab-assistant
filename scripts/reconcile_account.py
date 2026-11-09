@@ -11,10 +11,9 @@ dated today, and is created cleared as "reconciled" and approved, the way
 YNAB's in-app reconcile records one. It does not mark the account's other
 cleared transactions as reconciled.
 
-Optional config.json section (all keys optional):
+Optional config.json section:
 
     "reconciliation": {
-      "max_adjustment": 5000,
       "accounts": {
         "Brokerage": {"category": "Investments"},
         "Retirement": {"category": null}
@@ -24,8 +23,6 @@ Optional config.json section (all keys optional):
 - accounts: when present, only these accounts may be reconciled. "category"
   is the category name for the adjustment (null leaves it uncategorized,
   which is required for off-budget accounts).
-- max_adjustment: the script refuses an adjustment larger than this, in
-  dollars, in either direction.
 
 Usage:
     uv run python scripts/reconcile_account.py "Account Name" 1234.56
@@ -137,16 +134,6 @@ def build_plan(
             f"{format_currency(account['uncleared_balance'])} is uncleared. "
             "The target is compared with the cleared balance, as in YNAB's reconcile."
         )
-
-    max_adjustment = settings.get("max_adjustment")
-    if adjustment and max_adjustment is not None:
-        cap = parse_amount(str(max_adjustment))
-        if abs(adjustment) > cap:
-            raise ReconcileError(
-                f"Adjustment of {format_currency(adjustment)} exceeds the "
-                f"{format_currency(cap)} cap (reconciliation.max_adjustment). "
-                "Check the target balance, or raise the cap in config.json."
-            )
 
     category_name = rules.get("category")
     category_id = None

@@ -86,16 +86,6 @@ def test_plan_refuses_account_not_in_allow_list():
         reconcile.build_plan([account()], [], settings, "Brokerage", 1)
 
 
-def test_plan_refuses_over_cap_either_direction():
-    settings = {"max_adjustment": 1000}
-    with pytest.raises(reconcile.ReconcileError, match="exceeds"):
-        reconcile.build_plan([account(cleared=0)], [], settings, "Brokerage", 1_000_010)
-    with pytest.raises(reconcile.ReconcileError, match="exceeds"):
-        reconcile.build_plan([account(cleared=1_000_010)], [], settings, "Brokerage", 0)
-    plan = reconcile.build_plan([account(cleared=0)], [], settings, "Brokerage", 1_000_000)
-    assert plan.adjustment == 1_000_000
-
-
 def test_plan_refuses_category_on_off_budget_account():
     settings = {"accounts": {"Roth": {"category": "Down Payment Fund"}}}
     with pytest.raises(reconcile.ReconcileError, match="off-budget"):
@@ -133,7 +123,6 @@ def fake_client(monkeypatch):
     fake.create_transaction.return_value = {"id": "new-txn"}
     monkeypatch.setattr(reconcile, "YNABClient", lambda **kw: fake)
     monkeypatch.setattr(reconcile, "load_config", lambda: {"reconciliation": {
-        "max_adjustment": 1000,
         "accounts": {"Brokerage": {"category": "Down Payment Fund"}},
     }})
     return fake
@@ -158,9 +147,14 @@ def test_main_apply_creates_adjustment(fake_client):
 
 
 def test_main_refusal_writes_nothing(fake_client, capsys):
-    assert reconcile.main(["Brokerage", "9000", "--apply"]) == reconcile.EXIT_REFUSED
+    assert reconcile.main(["Retirement", "9000", "--apply"]) == reconcile.EXIT_REFUSED
     fake_client.create_transaction.assert_not_called()
     assert "Refused" in capsys.readouterr().err
+
+
+def test_main_refuses_malformed_amount(fake_client):
+    assert reconcile.main(["Brokerage", "7295.678", "--apply"]) == reconcile.EXIT_REFUSED
+    fake_client.create_transaction.assert_not_called()
 
 
 def test_main_refuses_without_reconciliation_payee(fake_client):
