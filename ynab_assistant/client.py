@@ -26,6 +26,9 @@ CACHE_TTL_HISTORICAL = 86400  # 24 hours for historical/static data
 # The API returns only the last year of transactions when since_date is omitted
 FULL_HISTORY_SINCE = date(1900, 1, 1)
 
+# Name of the payee YNAB itself uses for reconciliation adjustments
+RECONCILIATION_PAYEE_NAME = "Reconciliation Balance Adjustment"
+
 
 def _model_to_dict(obj) -> dict | list | str | int | float | bool | None:
     """Convert a Pydantic model (or list of models) to a JSON-serializable dict.
@@ -57,6 +60,7 @@ class YNABClient:
         self._categories_api = ynab.CategoriesApi(self.api)
         self._transactions_api = ynab.TransactionsApi(self.api)
         self._months_api = ynab.MonthsApi(self.api)
+        self._payees_api = ynab.PayeesApi(self.api)
 
         # Ensure cache directories exist
         CACHE_DIR.mkdir(exist_ok=True)
@@ -132,11 +136,12 @@ class YNABClient:
         self._set_cached(key, result)
         return result
 
-    def clear_cache(self):
+    def clear_cache(self, quiet: bool = False):
         """Clear all cached API responses."""
         for cache_file in API_CACHE_DIR.glob("*.json"):
             cache_file.unlink()
-        print("Cache cleared")
+        if not quiet:
+            print("Cache cleared")
 
     # -- Convenience methods --------------------------------------------------
     # These exist because they're called everywhere and encode small details
@@ -182,6 +187,26 @@ class YNABClient:
             extract=lambda r: r.data.month,
             **extra,
         )
+
+    def get_payees(self, **extra) -> list:
+        return self.cached_call(
+            "get_payees",
+            self._payees_api.get_payees,
+            self.budget_id,
+            extract=lambda r: r.data.payees,
+            **extra,
+        )
+
+    def get_reconciliation_payee(self) -> Optional[dict]:
+        """Return YNAB's built-in reconciliation payee, or None if absent.
+
+        YNAB creates this payee the first time an account is reconciled in
+        the app; it is identified by name.
+        """
+        for payee in self.get_payees():
+            if payee.get("name") == RECONCILIATION_PAYEE_NAME and not payee.get("deleted"):
+                return payee
+        return None
 
     def get_category_by_month(self, category_id: str, month: str, **extra) -> dict:
         return self.cached_call(
@@ -250,4 +275,48 @@ class YNABClient:
         response = self._transactions_api.update_transaction(
             self.budget_id, transaction_id, wrapper
         )
+        return _model_to_dict(response.data.transaction)
+
+    def create_transaction(
+        self,
+        account_id: str,
+        amount: int,
+        *,
+        var_date: Optional[date] = None,
+        payee_id: Optional[str] = None,
+        payee_name: Optional[str] = None,
+        category_id: Optional[str] = None,
+        memo: Optional[str] = None,
+        cleared: Optional[str] = None,
+        approved: Optional[bool] = None,
+        **extra,
+    ) -> dict:
+        """Create a single transaction. Not cached (write operation).
+
+        amount is in milliunits. var_date defaults to today. Any additional
+        ynab.NewTransaction field can be passed as a kwarg. Clears the read
+        cache afterwards so later reads see the new transaction.
+        """
+        fields = {
+            k: v for k, v in {
+                "payee_id": payee_id,
+                "payee_name": payee_name,
+                "category_id": category_id,
+                "memo": memo,
+                "cleared": cleared,
+                "approved": approved,
+            }.items() if v is not None
+        }
+        fields.update(extra)
+
+        wrapper = ynab.PostTransactionsWrapper(
+            transaction=ynab.NewTransaction(
+                account_id=account_id,
+                amount=amount,
+                date=var_date or date.today(),
+                **fields,
+            )
+        )
+        response = self._transactions_api.create_transaction(self.budget_id, wrapper)
+        self.clear_cache(quiet=True)
         return _model_to_dict(response.data.transaction)
