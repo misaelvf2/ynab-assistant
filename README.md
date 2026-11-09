@@ -78,11 +78,14 @@ Once onboarded, you're free to run any script directly from the command line.
 | `scripts/net_worth_history.py` | Historical net worth trends | `--months N` |
 | `scripts/review_transactions.py` | Flag transaction issues | `--days N`, `--memo-threshold N` |
 | `scripts/spending_velocity.py` | Spending pace & projections | `--threshold N`, `--alerts-only` |
+| `scripts/reconcile_account.py` | Adjust an account's cleared balance to a target (dry run unless `--apply`) | `ACCOUNT BALANCE`, `--apply`, `--memo TEXT` |
 
 ```bash
 uv run python scripts/spending_summary.py
 uv run python scripts/net_worth.py --save
 ```
+
+Run the tests with `uv run pytest`.
 
 **User-specific scripts** are generated during onboarding into `user_scripts/` — these are tailored to your budget (e.g. category trackers with your spending caps, monthly retrospectives with your grading dimensions). See the personal-budget skill spec for the patterns used to generate them.
 

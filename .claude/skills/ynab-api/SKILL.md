@@ -81,7 +81,10 @@ Common operations that encode small details (budget_id injection, date string→
 | `get_account_transactions(account_id)` | `list[dict]` | All transactions for one account (24hr cache) |
 | `get_all_transactions()` | `list[dict]` | All transactions across accounts (24hr cache) |
 | `update_transaction(txn_id, ...)` | `dict` | Update approved/memo/category_id/flag_color |
-| `clear_cache()` | — | Delete all cached API responses |
+| `create_transaction(account_id, amount, ...)` | `dict` | Create one transaction (milliunits; date defaults to today); clears the cache afterwards |
+| `get_payees()` | `list[dict]` | All payees (5min cache) |
+| `get_reconciliation_payee()` | `dict \| None` | YNAB's built-in "Reconciliation Balance Adjustment" payee |
+| `clear_cache(quiet=False)` | — | Delete all cached API responses |
 
 ## Data Formats
 

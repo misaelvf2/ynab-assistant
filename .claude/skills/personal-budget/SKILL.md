@@ -148,6 +148,7 @@ These routes are available out of the box with the generic scripts:
 | "How has my net worth grown?" | `scripts/net_worth_history.py` |
 | "Review my transactions" | `scripts/review_transactions.py` |
 | "How's my spending pace?" | `scripts/spending_velocity.py` |
+| "Reconcile <account> to $X" | `scripts/reconcile_account.py "<account>" X` (dry run), then add `--apply` once the plan looks right |
 | "Financial checkup" | Run all scripts and summarize |
 | "Show me the dashboard" | `uv run uvicorn dashboard.app:app --reload --port 8000` |
 
@@ -198,6 +199,17 @@ uv run python scripts/spending_velocity.py [--threshold N] [--alerts-only]
 ```
 - `--threshold N` — alert when category is N% ahead of pace (default: 10)
 - `--alerts-only` — only show overspent and warning categories
+
+### reconcile_account.py
+**Triggers:** reconcile an account, balance adjustment, investment account value update
+```
+uv run python scripts/reconcile_account.py "ACCOUNT" BALANCE [--apply] [--memo TEXT]
+```
+- Compares BALANCE with the account's **cleared** balance and plans one adjustment for the difference, dated today, using YNAB's "Reconciliation Balance Adjustment" payee, cleared as `reconciled` and approved.
+- Dry run by default: prints the plan and writes nothing. `--apply` creates it, then re-reads the account to confirm the cleared balance.
+- Optional `reconciliation` section in `config.json`: `accounts` (an allow-list; each entry's `category` is where the adjustment goes, `null` for uncategorized/off-budget). The template ships with an empty `accounts` list, so nothing can be reconciled until accounts are added; remove the `accounts` key to allow every account.
+- Exit code 2 means refused (account not allowed, bad amount, category on an off-budget account); nothing is written.
+- It does not mark the account's other cleared transactions as reconciled.
 
 ## Reports
 

@@ -23,5 +23,8 @@
   "grading": {
     "dimensions": {},
     "letter_grades": { "A": 90, "B": 80, "C": 70, "D": 60 }
+  },
+  "reconciliation": {
+    "accounts": {}
   }
 }
